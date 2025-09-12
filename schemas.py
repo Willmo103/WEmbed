@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel, computed_field
@@ -112,3 +112,58 @@ class ChunkRecordModel(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None,
         }
+
+
+class ChunkModel(BaseModel):
+    index: int
+    chunk: BaseChunk
+    embedding: list[float]
+
+
+class ChunkList(BaseModel):
+    chunks: list[ChunkModel]
+
+
+class DocumentOut(BaseModel):
+    id: int
+    source: str
+    source_type: str
+    source_ref: str | None
+    dl_doc: str | None
+    markdown: str | None
+    html: str | None
+    text: str | None
+    doctags: str | None
+    chunks: ChunkList | None
+    created_at: str = datetime.now(tz=timezone.utc).isoformat()
+
+
+class StringContentOut(BaseModel):
+    source: str
+    source_type: str
+    source_ref: str | None
+    created_at: str
+
+
+class MarkdownOut(StringContentOut):
+    markdown: str
+
+
+class HtmlOut(StringContentOut):
+    html: str
+
+
+class TextOut(StringContentOut):
+    text: str
+
+
+class DoclingDocOut(StringContentOut):
+    dl_doc: str | None
+
+
+class ChunksJsonOut(StringContentOut):
+    chunks_json: str | None
+
+
+class DoctagsOut(StringContentOut):
+    doctags: str | None
