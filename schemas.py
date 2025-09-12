@@ -1,7 +1,10 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, computed_field
 from sqlite_utils import Database
+from docling_core.types.doc.document import DoclingDocument
+from docling_core.transforms.chunker.base import BaseChunk
 
 
 class FileLine(BaseModel):
@@ -70,3 +73,42 @@ class FileRecord(BaseModel):
                 line_text=line,
             )
             file_line.save_to_sqlite(db)
+
+
+class DocumentRecordModel(BaseModel):
+    id: int
+    source: str
+    source_type: str
+    source_ref: int | None
+    dl_doc: str | None
+    markdown: str | None
+    html: str | None
+    text: str | None
+    doctags: str | None
+    chunks_json: str | None
+    created_at: str
+
+    class Config:
+        from_attributes = True
+        allow_population_by_field_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,
+            "ChunkRecordModel": lambda v: (
+                v.model_dump_json(indent=2) if v else None
+            ),
+        }
+
+
+class ChunkRecordModel(BaseModel):
+    id: int
+    document_id: int
+    chunk: str
+    embedding: list[float]
+    created_at: str
+
+    class Config:
+        from_attributes = True
+        allow_population_by_field_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,
+        }
