@@ -9,6 +9,9 @@ from ignore_ext import IGNORE_EXTENSIONS
 from ignore_parts import IGNORE_PARTS
 from md_xref import MD_XREF
 
+IS_INITIALIZED = False
+IS_LOADED = False
+
 _this_dir = Path(__file__).resolve().parent
 _app_data_dir = os.getenv("APP_DATA_DIR", _this_dir.parent / "data")
 _app_data_dir = Path(_app_data_dir).resolve()
@@ -19,6 +22,7 @@ _user = os.getenv("USERNAME", "unknown")
 # private constants for setup
 _app_dotenv = _this_dir.parent / ".env"
 
+
 _default_repos_db = os.getenv("REPO_DB", _app_data_dir / "repos.db")
 _md_db = os.getenv("MD_DB", _app_data_dir / "md.db")
 _md_vault = os.getenv("MD_VAULT", _app_data_dir / "md_vault")
@@ -26,6 +30,22 @@ _ignore_parts_path = os.getenv("IGNORE_PARTS_PATH", _app_data_dir / "ignore_part
 _ignore_ext_path = os.getenv("IGNORE_EXT_PATH", _app_data_dir / "ignore_ext.json")
 _md_xref = os.getenv("MD_XREF", _app_data_dir / "md_xref.json")
 _md_xref = Path(_md_xref).resolve()
+
+
+def init_config():
+    global IS_INITIALIZED
+    if IS_INITIALIZED:
+        return
+    Path(_app_data_dir).mkdir(parents=True, exist_ok=True)
+    Path(_app_dotenv).touch(exist_ok=True)
+    Path(_default_repos_db).touch(exist_ok=True)
+    Path(_md_db).touch(exist_ok=True)
+    IS_INITIALIZED = True
+
+
+if not IS_INITIALIZED:
+    init_config()
+
 
 load_dotenv(_app_dotenv)
 
@@ -91,8 +111,23 @@ def _load_ignore_extensions() -> None:
                     json.dump(sorted(IGNORE_EXTENSIONS), out, indent=2)
 
 
-def init_config():
-    _app_data_dir.mkdir(parents=True, exist_ok=True)
-    _app_dotenv.touch(exist_ok=True)
-    _default_repos_db.touch(exist_ok=True)
-    _md_db.touch(exist_ok=True)
+def print_config():
+    print(
+        f"""
+_this_dir: {_this_dir}
+_app_data_dir: {_app_data_dir}
+_host: {_host}
+_user: {_user}
+_md_xref: {_md_xref}
+_md_vault: {_md_vault}
+_ignore_parts_path: {_ignore_parts_path}
+_ignore_ext_path: {_ignore_ext_path}
+"""
+    )
+
+
+if not IS_LOADED:
+    _load_ignore_extensions()
+    _load_ignore_parts()
+    _load_md_xref()
+    IS_LOADED = True

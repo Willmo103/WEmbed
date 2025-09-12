@@ -14,3 +14,4 @@ wheels/
 *.sqlite
 *.config.json
 *.idea
+data/
