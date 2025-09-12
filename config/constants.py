@@ -32,7 +32,7 @@ _md_xref = os.getenv("MD_XREF", _app_data_dir / "md_xref.json")
 _md_xref = Path(_md_xref).resolve()
 
 
-def init_config():
+def _init_config():
     global IS_INITIALIZED
     if IS_INITIALIZED:
         return
@@ -44,7 +44,7 @@ def init_config():
 
 
 if not IS_INITIALIZED:
-    init_config()
+    _init_config()
 
 
 load_dotenv(_app_dotenv)
