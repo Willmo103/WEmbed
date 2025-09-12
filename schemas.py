@@ -17,9 +17,7 @@ class FileLine(BaseModel):
         return f"{self.file_id}:{self.line_number}"
 
     def save_to_sqlite(self, db: Database):
-        db["file_lines"].insert(
-            self.model_dump(), pk="id", replace=True, alter=True
-        )
+        db["file_lines"].insert(self.model_dump(), pk="id", replace=True, alter=True)
 
 
 class FileRecord(BaseModel):
@@ -58,9 +56,7 @@ class FileRecord(BaseModel):
         self.version += 1
 
     def save_to_sqlite(self, db: Database):
-        db["files"].insert(
-            self.model_dump(), pk="id", replace=True, alter=True
-        )
+        db["files"].insert(self.model_dump(), pk="id", replace=True, alter=True)
         self.save_lines_to_sqlite(db)
 
     def save_lines_to_sqlite(self, db: Database):
