@@ -24,3 +24,56 @@ class InputModel(Base):
     status = Column(String, nullable=False)
     errors = Column(String, nullable=True)
     added_at = Column(DateTime, nullable=False)
+
+
+class Chunk(Base):
+    __tablename__ = "chunks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    document_id = Column(ForeignKey("documents.id"), nullable=False)
+    idx = Column(Integer, nullable=False)
+    chunk = Column(String, nullable=False)
+    embedding = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+
+
+class FileRecord(Base):
+    __tablename__ = "files"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source = Column(String, nullable=False)
+    source_type = Column(String, nullable=False)
+    source_name = Column(String, nullable=False)
+    host = Column(String, nullable=False)
+    user = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    stem = Column(String, nullable=False)
+    path = Column(String, nullable=False)
+    relative_path = Column(String, nullable=False)
+    suffix = Column(String, nullable=False)
+    sha256 = Column(String, nullable=False, unique=True)
+    md5 = Column(String, nullable=False)
+    mode = Column(Integer, nullable=False)
+    size = Column(Integer, nullable=False)
+    content = Column(BYTEA, nullable=True)
+    content_text = Column(Text, nullable=False)
+    markdown = Column(Text, nullable=True)
+    ctime_iso = Column(DateTime, nullable=False)
+    mtime_iso = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False, default="now()")
+    line_count = Column(Integer, nullable=False)
+    uri = Column(String, nullable=False)
+    mimetype = Column(String, nullable=False)
+
+
+class DocumentRecord(Base):
+    __tablename__ = "documents"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source = Column(String, nullable=False)
+    source_type = Column(String, nullable=False)
+    source_ref = Column(ForeignKey("inputs.id"), nullable=True)
+    dl_doc = Column(String, nullable=True)
+    markdown = Column(String, nullable=True)
+    html = Column(String, nullable=True)
+    text = Column(String, nullable=True)
+    doctags = Column(String, nullable=True)
+    chunks_json = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False)
