@@ -29,6 +29,8 @@ _ignore_parts_path = _app_data_dir / "ignore_parts.json"
 _ignore_ext_path = _app_data_dir / "ignore_ext.json"
 _md_xref = _app_data_dir / "md_xref.json"
 
+_postgres_uri = os.getenv("PG_DB_URL", None)
+
 
 def _init_config():
     global IS_INITIALIZED
@@ -48,23 +50,29 @@ if not IS_INITIALIZED:
 load_dotenv(_app_dotenv)
 
 # sqlite-utils Databases
-MD_DB = Database(_md_db)
-REPO_DATABASE = Database(_repo_db)
+MD_DB: Database = Database(_md_db)
+REPO_DATABASE: Database = Database(_repo_db)
 
 # data dirs
-STORAGE = _app_data_dir
-MD_VAULT = _md_vault
-IGNORE_PARTS_CONFIG = _ignore_parts_path
-IGNORE_EXTENSIONS_CONFIG = _ignore_ext_path
-MD_XREF_CONFIG = _md_xref
+STORAGE: Path = _app_data_dir
+MD_VAULT: Path = _md_vault
+IGNORE_PARTS_CONFIG: Path = _ignore_parts_path
+IGNORE_EXTENSIONS_CONFIG: Path = _ignore_ext_path
+MD_XREF_CONFIG: Path = _md_xref
 
 
-MAX_TOKENS = 2048
-EMBEDDING_LENGTH = 768
-EMBED_MODEL_ID = "nomic-ai/nomic-embed-text-v1.5"
-EMBED_MODEL_NAME = "nomic-embed-text"
+MAX_TOKENS: int = 2048
+EMBEDDING_LENGTH: int = 768
+EMBED_MODEL_ID: str = "nomic-ai/nomic-embed-text-v1.5"
+EMBED_MODEL_NAME: str = "nomic-embed-text"
 
-OBSIDIAN_EXE = f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
+OBSIDIAN_EXE: str = f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
+
+SQLITE_REPO_URI: str = f"sqlite:///{_repo_db}"
+SQLITE_MD_URI: str = f"sqlite:///{_md_db}"
+HOST: str = _host
+USER: str = _user
+POSTGRES_URI: str = _postgres_uri
 
 
 def print_config():
@@ -78,6 +86,8 @@ _md_vault: {_md_vault}
 _md_xref: {_md_xref}
 _ignore_parts_path: {_ignore_parts_path}
 _ignore_ext_path: {_ignore_ext_path}
+_repo_uri: {SQLITE_REPO_URI.replace('\\', '/')}
+_md_uri: {SQLITE_MD_URI.replace('\\', '/')}
 """
     )
 

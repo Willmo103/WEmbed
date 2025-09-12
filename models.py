@@ -77,3 +77,13 @@ class DocumentRecord(Base):
     doctags = Column(String, nullable=True)
     chunks_json = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False)
+
+
+class FileLine(Base):
+    __tablename__ = "file_lines"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    file_id = Column(ForeignKey("files.id"), nullable=False)
+    line_number = Column(Integer, nullable=False)
+    line_text = Column(Text, nullable=False)
+    embedding = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False)
