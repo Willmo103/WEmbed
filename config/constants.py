@@ -13,6 +13,9 @@ _this_dir = Path(__file__).resolve().parent
 _app_data_dir = os.getenv("APP_DATA_DIR", _this_dir.parent / "data")
 _app_data_dir = Path(_app_data_dir).resolve()
 
+_host = os.getenv("COMPUTERNAME", "unknown")
+_user = os.getenv("USERNAME", "unknown")
+
 # private constants for setup
 _app_dotenv = _this_dir.parent / ".env"
 
@@ -33,6 +36,9 @@ REPO_DATABASE = Path(_default_repos_db).resolve()
 IGNORE_PARTS_CONFIG = Path(_ignore_parts_path).resolve()
 IGNORE_EXTENSIONS_CONFIG = Path(_ignore_ext_path).resolve()
 MD_XREF_CONFIG = Path(_md_xref).resolve()
+
+
+OBSIDIAN_EXE = f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
 
 
 def _load_md_xref() -> None:
