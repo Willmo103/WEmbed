@@ -28,15 +28,13 @@ load_dotenv(_app_dotenv)
 
 # CRITICAL we have a connection to POSTGRES
 _postgres_uri = os.getenv("PG_DB_URL", None)
-if not _postgres_uri:
-    print("WARNING: PG_DB_URL not set in environment, Postgres DB will be disabled")
 
+# Host and User
 _host = os.getenv("COMPUTERNAME", "unknown")
 _user = os.getenv("USERNAME", "unknown")
 
 # setup db paths
-_md_db = _app_data_dir / "md.db"
-_repo_db = _app_data_dir / "repo.db"
+local_db_path = _app_data_dir / "md.db"
 
 # setup vault dir
 _md_vault = _app_data_dir / "md_vault"
@@ -53,8 +51,7 @@ def _init_config():
         return
     Path(_app_data_dir).mkdir(parents=True, exist_ok=True)
     Path(_app_dotenv).touch(exist_ok=True)
-    Path(_repo_db).touch(exist_ok=True)
-    Path(_md_db).touch(exist_ok=True)
+    Path(local_db_path).touch(exist_ok=True)
     IS_INITIALIZED = True
 
 
@@ -79,8 +76,7 @@ OBSIDIAN_EXE: str = (
     f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
 )
 
-SQLITE_REPO_URI: str = f"sqlite:///{_repo_db}"
-SQLITE_MD_URI: str = f"sqlite:///{_md_db}"
+LOCAL_DB_URI: str = f"sqlite:///{local_db_path}"
 HOST: str = _host
 USER: str = _user
 POSTGRES_URI: str = _postgres_uri

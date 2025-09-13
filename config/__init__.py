@@ -12,13 +12,11 @@ from constants import (
     EMBED_MODEL_NAME,
     EMBEDDING_LENGTH,
     MAX_TOKENS,
-    SQLITE_REPO_URI,
-    SQLITE_MD_URI,
+    LOCAL_DB_URI,
     HOST,
     USER,
     POSTGRES_URI,
-    _md_db,
-    _repo_db,
+    local_db_path,
 )
 from ignore_ext import IGNORE_EXTENSIONS
 from ignore_parts import IGNORE_PARTS
@@ -29,10 +27,11 @@ from pydantic_settings import BaseSettings
 
 
 class Config(BaseSettings):
-    repo_db_pth: str = _repo_db.as_posix()
-    md_db_pth: str = _md_db.as_posix()
-    storage: Path = STORAGE
+    db_path: str = local_db_path.as_posix()
+    remote_db_uri: str | None = POSTGRES_URI
+    local_db_uri: str = LOCAL_DB_URI
     md_vault: Path = MD_VAULT
+    app_storage: Path = STORAGE
     ignore_parts: list[str] = IGNORE_PARTS
     ignore_extensions: list[str] = IGNORE_EXTENSIONS
     md_xref: dict[str, str] = MD_XREF
@@ -43,9 +42,6 @@ class Config(BaseSettings):
     max_tokens: int = MAX_TOKENS
     host: str = HOST
     user: str = USER
-    postgres_uri: str | None = POSTGRES_URI
-    repo_db_uri: str = SQLITE_REPO_URI
-    md_db_uri: str = SQLITE_MD_URI
 
     model_config = {
         "json_encoders": {
@@ -56,18 +52,14 @@ class Config(BaseSettings):
     }
 
     @computed_field
-    def md_db(self) -> Database:
-        return Database(self.md_db_pth)
-
-    @computed_field
-    def repo_db(self) -> Database:
-        return Database(self.repo_db_pth)
+    def local_db(self) -> Database:
+        return Database(self.db_path)
 
     @computed_field
     def postgres_db(self) -> Engine | None:
 
-        if self.postgres_uri:
-            return create_engine(self.postgres_uri)
+        if self.remote_db_uri:
+            return create_engine(self.remote_db_uri)
         return None
 
 
@@ -92,7 +84,7 @@ def export_config(fp: str):
 def test_db_connection() -> bool:
     sql = "SELECT schema_name FROM information_schema.schemata"
     try:
-        eng = create_engine(conf.postgres_uri)
+        eng = create_engine(conf.remote_db_uri)
         with eng.connect() as conn:
             conn.execute(text(sql))
             return True
