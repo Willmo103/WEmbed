@@ -89,6 +89,16 @@ def export_config(fp: str):
         )
 
 
+def test_db_connection() -> bool:
+    sql = "SELECT schema_name FROM information_schema.schemata"
+    try:
+        eng = create_engine(conf.postgres_uri)
+        with eng.connect() as conn:
+            conn.execute(text(sql))
+            return True
+    except psycopg2.Error:
+        return False
+
 @config_cli.command(name="show")
 def show_config():
     ppconfig_conf()
@@ -108,15 +118,12 @@ def export_config_command(
 
 
 @config_cli.command(name="test-db", help="Test Postgres DB connection")
-def test_db_connection():
-    sql = "SELECT schema_name FROM information_schema.schemata"
-    try:
-        eng = create_engine(conf.postgres_uri)
-        with eng.connect() as conn:
-            conn.execute(text(sql))
-        print("Repository database connection successful.")
-    except psycopg2.Error as e:
-        print(f"Repository database connection failed: {e}")
+def test_db_command():
+    if test_db_connection():
+        print("Postgres DB connection successful.")
+    else:
+        print("Postgres DB connection failed.")
+
 
 if __name__ == "__main__":
     config_cli()
