@@ -17,9 +17,7 @@ class _BaseModel(BaseModel):
             set: lambda v: "[" + ", ".join(v) + "]" if v else "[]",
             list: lambda v: "[" + ", ".join(v) + "]" if v else "[]",
             BaseModel: lambda v: v.model_dump_json(indent=2) if v else None,
-            "ChunkRecordModel": lambda v: (
-                v.model_dump_json(indent=2) if v else None
-            ),
+            "ChunkRecordModel": lambda v: (v.model_dump_json(indent=2) if v else None),
             llm.models.EmbeddingModel: lambda v: v.model_id if v else str(v),
             Database: lambda v: str(v) if v else None,
         }
@@ -88,7 +86,6 @@ class DocumentRecordModel(_BaseModel):
         "from_attributes": True,
         "json_encoders": {
             datetime: lambda v: v.isoformat() if v else None,
-
         },
     }
 
@@ -144,8 +141,7 @@ class LlmCollectionParams(_BaseModel):
     model_config = {
         "from_attributes": True,
         "arbitrary_types_allowed": True,
-        "json_encoders": {
-        },
+        "json_encoders": {},
     }
 
 

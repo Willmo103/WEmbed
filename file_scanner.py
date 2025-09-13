@@ -17,9 +17,7 @@ def _iter_files(base: Path) -> Iterable[Path]:
             yield item
 
 
-def _should_skip(
-    item: Path, parts: Set[str] = app_config.ignore_parts
-) -> bool:
+def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
     # Skip if any path segment matches a blocked part
     return any(seg in parts for seg in item.parts)
 
@@ -163,9 +161,9 @@ def list_files(
 
     for item in root.rglob("*"):
         try:
-            if ((item.is_file() and not dirs) and not _should_skip(item, parts_with_git)) or (
-                item.is_dir() and dirs and not _should_skip(item, parts_with_git)
-            ):
+            if (
+                (item.is_file() and not dirs) and not _should_skip(item, parts_with_git)
+            ) or (item.is_dir() and dirs and not _should_skip(item, parts_with_git)):
                 files.append(item)
         except Exception as e:
             errors.append(str(e))
@@ -187,9 +185,7 @@ def list_files(
     if store:
         db = Database(app_config.db_path)
         table_name = "scan_results"
-        db[table_name].insert(
-            result.model_dump(), pk="id", alter=True
-        )
+        db[table_name].insert(result.model_dump(), pk="id", alter=True)
     if json:
         return result.model_dump_json(indent=2)
     if nl:
@@ -200,9 +196,7 @@ def list_files(
 file_filter_cli = typer.Typer(name="files")
 
 
-@file_filter_cli.command(
-    name="repos", help="Scan for git repos", no_args_is_help=True
-)
+@file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
 def scan_repos_command(
     path: str = typer.Argument(
         ..., help="Path to scan", dir_okay=True, file_okay=False

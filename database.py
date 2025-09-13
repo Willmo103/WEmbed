@@ -8,6 +8,7 @@ def _get_engine(uri: str) -> Engine:
 
 def create_models(uri: str):
     from . import models
+
     models.Base.metadata.create_all(_get_engine(uri))
 
 
