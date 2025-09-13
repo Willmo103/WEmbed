@@ -1,9 +1,12 @@
 from ast import Tuple
 from asyncio import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Set
 from config import app_config
 from pydantic import BaseModel
+
+from schemas import ScanResult
 
 
 def _iter_files(base: Path) -> Iterable[Path]:
@@ -110,3 +113,45 @@ def scan_vaults(path: str) -> List[Tuple[str, str, Set[str]]]:
             files.add(rel)
         results.append((vault_root.as_posix(), name, files))
     return results
+
+
+def list_files(
+    path: str,
+    json: bool = False,
+    nl: bool = False,
+    store: bool = True,
+    dirs: bool = False,
+) -> List[Path]:
+    """List all files in a directory, excluding ignored paths."""
+    files: List[Path] = []
+    root = Path(path).resolve()
+    scan_start = datetime.now(tz=timezone.utc)
+    errors = []
+    options = {
+        "path": str(path),
+        "json": json,
+        "nl": nl,
+        "store": store,
+    }
+    for item in root.rglob("*"):
+        try:
+            if ((item.is_file() and not dirs) and _should_skip(item)) or (
+                item.is_dir() and dirs and _should_skip(item)
+            ):
+                files.append(item)
+        except Exception as e:
+            errors.append(str(e))
+    scan_end = datetime.now(tz=timezone.utc)
+    duration = (scan_end - scan_start).total_seconds()
+    errors_str = "; ".join(errors) if errors else None
+    result = ScanResult(
+        root=root.as_posix(),
+        name=root.name,
+        files=files,
+        scan_start=scan_start,
+        scan_end=scan_end,
+        duration=duration,
+        options=options,
+        errors=errors_str,
+    )
+    return files

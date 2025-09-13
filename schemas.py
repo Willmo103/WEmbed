@@ -203,7 +203,11 @@ class ScanResult(BaseModel):
     root: str
     name: str
     files: Set[str]
-    scanned_at: str = datetime.now(tz=timezone.utc).isoformat()
+    scan_start: datetime
+    scan_end: datetime
+    duration: float
+    options: dict
+    error: str | None
 
     @computed_field
     def total_files(self) -> int:
