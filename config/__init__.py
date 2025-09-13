@@ -5,7 +5,7 @@ import psycopg2
 from pydantic import computed_field
 from sqlite_utils import Database
 import typer
-from constants import (
+from .constants import (
     MD_VAULT,
     STORAGE,
     EMBED_MODEL_ID,
@@ -20,10 +20,10 @@ from constants import (
     VAULT_FOLDER,
     VAULT_EXTENSIONS,
 )
-from ignore_ext import IGNORE_EXTENSIONS
-from ignore_parts import IGNORE_PARTS
-from md_xref import MD_XREF
-from headers import HEADERS
+from .ignore_ext import IGNORE_EXTENSIONS
+from .ignore_parts import IGNORE_PARTS
+from .md_xref import MD_XREF
+from .headers import HEADERS
 
 from pydantic_settings import BaseSettings
 

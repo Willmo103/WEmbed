@@ -3,12 +3,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Set
 
-from typer import Typer
+from sqlite_utils import Database
 import typer
 
 from config import app_config
-from pydantic import BaseModel
-
 from schemas import ScanResult
 
 
@@ -26,7 +24,7 @@ def _should_skip(
 
 
 def _scan_core(
-    path: str, tracked_only: bool = False, md_only: bool = False
+    path: str, tracked_only: bool = True, md_only: bool = False
 ) -> List[ScanResult]:
     """
     Generic scanner for repos and vaults.
@@ -114,6 +112,7 @@ def _scan_core(
             ScanResult(
                 root=root.as_posix(),
                 name=name,
+                scan_type=scan_type,  # <-- Populate the new field
                 files=files,
                 scan_start=scan_start,
                 scan_end=scan_end,
@@ -124,7 +123,7 @@ def _scan_core(
                     "tracked_only": tracked_only,
                     "md_only": md_only,
                 },
-                errors=None,
+                error=None,  # <-- Bonus fix: changed 'errors' to 'error'
             )
         )
 
@@ -173,15 +172,18 @@ def list_files(
     result = ScanResult(
         root=root.as_posix(),
         name=root.name,
-        files=[f.as_posix() for f in files],
+        scan_type="list",  # <-- Populate the new field for this function
+        files="[" + ", ".join(f.as_posix() for f in files) + "]",
         scan_start=scan_start,
         scan_end=scan_end,
         duration=duration,
         options=options,
-        errors=errors_str,
+        error=errors_str,
     )
     if store:
-        result.save_to_sqlite(db=app_config.db, table_name="scan_results")
+        db = Database(app_config.db_path)
+        table_name = "scan_results"
+        db[table_name].insert(result.model_dump(), pk="root", replace=True, alter=True)
     if json:
         return result.model_dump_json(indent=2)
     if nl:
@@ -194,9 +196,33 @@ file_filter_cli = typer.Typer(name="files")
 
 @file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
 def scan_repos_command(
-    path: str = typer.Argument(..., help="Path to scan"),
+    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False),
     tracked_only: bool = typer.Option(True, help="Only scan tracked files"),
 ):
     results = scan_repos(path, tracked_only=tracked_only)
     for result in results:
         typer.echo(result.model_dump_json(indent=2))
+
+
+@file_filter_cli.command(name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True)
+def scan_vaults_command(
+    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False),
+):
+    results = scan_vaults(path)
+    for result in results:
+        typer.echo(result.model_dump_json(indent=2))
+
+
+@file_filter_cli.command(name="list", help="List files in a directory", no_args_is_help=True)
+def list_files_command(
+    path: str = typer.Argument(..., help="Path to list files", dir_okay=True, file_okay=False),
+    json: bool = typer.Option(False, help="Output as JSON"),
+    nl: bool = typer.Option(False, help="Output as newlines"),
+    store: bool = typer.Option(True, help="Store results in database"),
+):
+    result = list_files(path, json=json, nl=nl, store=store)
+    typer.echo(result)
+
+
+if __name__ == "__main__":
+    file_filter_cli()

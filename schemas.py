@@ -9,7 +9,23 @@ from docling_core.types.doc.document import DoclingDocument
 from docling_core.transforms.chunker.base import BaseChunk
 
 
-class FileLine(BaseModel):
+class _BaseModel(BaseModel):
+    class Config:
+        from_attributes: bool = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,
+            set: lambda v: list(v) if v else [],
+            list: lambda v: list(v) if v else [],
+            BaseModel: lambda v: v.model_dump_json(indent=2) if v else None,
+            "ChunkRecordModel": lambda v: (
+                v.model_dump_json(indent=2) if v else None
+            ),
+            llm.models.EmbeddingModel: lambda v: v.model_id if v else str(v),
+            Database: lambda v: str(v) if v else None,
+        }
+
+
+class FileLine(_BaseModel):
     file_id: str
     file_repo_name: str
     file_repo_type: str
@@ -23,7 +39,7 @@ class FileLine(BaseModel):
         return f"{self.file_id}:{self.line_number}"
 
 
-class FileRecord(BaseModel):
+class FileRecord(_BaseModel):
     id: str
     version: int
     source: str
@@ -50,20 +66,11 @@ class FileRecord(BaseModel):
     mimetype: str | None
     markdown: str | None
 
-    model_config = {
-        "from_attributes": True,
-        "populate_by_name": True,
-        "arbitrary_types_allowed": True,
-        "json_encoders": {
-            datetime: lambda v: v.isoformat() if v else None,
-        },
-    }
-
     def bump_version(self):
         self.version += 1
 
 
-class DocumentRecordModel(BaseModel):
+class DocumentRecordModel(_BaseModel):
     id: int
     source: str
     source_type: str
@@ -77,41 +84,34 @@ class DocumentRecordModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-        allow_population_by_field_name = True
-        json_encoders = {
+    model_config = {
+        "from_attributes": True,
+        "json_encoders": {
             datetime: lambda v: v.isoformat() if v else None,
-            "ChunkRecordModel": lambda v: (v.model_dump_json(indent=2) if v else None),
-        }
+
+        },
+    }
 
 
-class ChunkRecordModel(BaseModel):
+class ChunkRecordModel(_BaseModel):
     id: int
     document_id: int
     chunk: str
     embedding: list[float]
     created_at: str
 
-    class Config:
-        from_attributes = True
-        allow_population_by_field_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None,
-        }
 
-
-class ChunkModel(BaseModel):
+class ChunkModel(_BaseModel):
     index: int
     chunk: BaseChunk
     embedding: list[float]
 
 
-class ChunkList(BaseModel):
+class ChunkList(_BaseModel):
     chunks: list[ChunkModel]
 
 
-class DocumentOut(BaseModel):
+class DocumentOut(_BaseModel):
     id: int
     source: str
     source_type: str
@@ -126,7 +126,7 @@ class DocumentOut(BaseModel):
     updated_at: str | None
 
 
-class StringContentOut(BaseModel):
+class StringContentOut(_BaseModel):
     source: str
     source_type: str
     source_ref: str | None
@@ -134,7 +134,7 @@ class StringContentOut(BaseModel):
     content: str | None
 
 
-class LlmCollectionParams(BaseModel):
+class LlmCollectionParams(_BaseModel):
     name: str
     db: Database | None = None
     model: llm.models.EmbeddingModel | None = None
@@ -143,18 +143,17 @@ class LlmCollectionParams(BaseModel):
 
     model_config = {
         "from_attributes": True,
-        "populate_by_name": True,
         "arbitrary_types_allowed": True,
         "json_encoders": {
-            llm.models.EmbeddingModel: lambda v: v.model_id if v else str(v),
         },
     }
 
 
-class ScanResult(BaseModel):
+class ScanResult(_BaseModel):
     root: str
     name: str
-    files: Set[str]
+    scan_type: str  # <-- Add this field
+    files: str  # Store as JSON string
     scan_start: datetime
     scan_end: datetime
     duration: float
@@ -165,19 +164,14 @@ class ScanResult(BaseModel):
     def total_files(self) -> int:
         return len(self.files)
 
-    class Config:
-        from_attributes = True
-        allow_population_by_field_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None,
-        }
 
-
-class InputOut(BaseModel):
+class InputOut(_BaseModel):
     id: int
     source: str
     source_type: str
     status: str
-    errors: str | None
+    errors: list | None = None
+    files: list[str] | None = None
     added_at: datetime
     processed_at: datetime
+    total_files: int
