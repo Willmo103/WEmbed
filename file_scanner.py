@@ -2,6 +2,7 @@ from asyncio import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Set
+from uuid import uuid4
 
 from sqlite_utils import Database
 import typer
@@ -153,15 +154,17 @@ def list_files(
     scan_start = datetime.now(tz=timezone.utc)
     errors = []
     options = {
-        "path": str(path),
+        "path_arg": str(path),
         "json": json,
         "nl": nl,
         "store": store,
     }
+    parts_with_git = [*app_config.ignore_parts, ".git"]
+
     for item in root.rglob("*"):
         try:
-            if ((item.is_file() and not dirs) and not _should_skip(item)) or (
-                item.is_dir() and dirs and not _should_skip(item)
+            if ((item.is_file() and not dirs) and not _should_skip(item, parts_with_git)) or (
+                item.is_dir() and dirs and not _should_skip(item, parts_with_git)
             ):
                 files.append(item)
         except Exception as e:
@@ -170,10 +173,11 @@ def list_files(
     duration = (scan_end - scan_start).total_seconds()
     errors_str = "; ".join(errors) if errors else None
     result = ScanResult(
+        id=uuid4().hex,
         root=root.as_posix(),
         name=root.name,
         scan_type="list",  # <-- Populate the new field for this function
-        files="[" + ", ".join(f.as_posix() for f in files) + "]",
+        files=list(f.as_posix() for f in files),
         scan_start=scan_start,
         scan_end=scan_end,
         duration=duration,
@@ -183,7 +187,9 @@ def list_files(
     if store:
         db = Database(app_config.db_path)
         table_name = "scan_results"
-        db[table_name].insert(result.model_dump(), pk="root", replace=True, alter=True)
+        db[table_name].insert(
+            result.model_dump(), pk="id", alter=True
+        )
     if json:
         return result.model_dump_json(indent=2)
     if nl:
@@ -194,9 +200,13 @@ def list_files(
 file_filter_cli = typer.Typer(name="files")
 
 
-@file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
+@file_filter_cli.command(
+    name="repos", help="Scan for git repos", no_args_is_help=True
+)
 def scan_repos_command(
-    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False),
+    path: str = typer.Argument(
+        ..., help="Path to scan", dir_okay=True, file_okay=False
+    ),
     tracked_only: bool = typer.Option(True, help="Only scan tracked files"),
 ):
     results = scan_repos(path, tracked_only=tracked_only)
@@ -204,18 +214,26 @@ def scan_repos_command(
         typer.echo(result.model_dump_json(indent=2))
 
 
-@file_filter_cli.command(name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True)
+@file_filter_cli.command(
+    name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True
+)
 def scan_vaults_command(
-    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False),
+    path: str = typer.Argument(
+        ..., help="Path to scan", dir_okay=True, file_okay=False
+    ),
 ):
     results = scan_vaults(path)
     for result in results:
         typer.echo(result.model_dump_json(indent=2))
 
 
-@file_filter_cli.command(name="list", help="List files in a directory", no_args_is_help=True)
+@file_filter_cli.command(
+    name="list", help="List files in a directory", no_args_is_help=True
+)
 def list_files_command(
-    path: str = typer.Argument(..., help="Path to list files", dir_okay=True, file_okay=False),
+    path: str = typer.Argument(
+        ..., help="Path to list files", dir_okay=True, file_okay=False
+    ),
     json: bool = typer.Option(False, help="Output as JSON"),
     nl: bool = typer.Option(False, help="Output as newlines"),
     store: bool = typer.Option(True, help="Store results in database"),

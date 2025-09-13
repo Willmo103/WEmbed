@@ -1,19 +1,16 @@
 from sqlalchemy import create_engine, Engine
-import typer
-from config import app_config
+from sqlalchemy.orm import Session, sessionmaker
 
 
-def create_local_engine() -> Engine:
-    import models
-    models.Base.metadata.create_all(bind=create_engine(app_config.local_db_uri))
-    typer.echo("Local database created.")
+def _get_engine(uri: str) -> Engine:
+    return create_engine(uri)
 
 
-def create_remote_tables() -> None:
-    if not app_config.remote_db_uri:
-        typer.echo("No remote database URI configured.")
-        return
-    import models
-    engine = create_engine(app_config.remote_db_uri)
-    models.Base.metadata.create_all(bind=engine)
-    typer.echo("Remote database tables created.")
+def create_models(uri: str):
+    from . import models
+    models.Base.metadata.create_all(_get_engine(uri))
+
+
+def get_session(uri: str) -> Session:
+    engine = _get_engine(uri)
+    return sessionmaker(bind=engine)()
