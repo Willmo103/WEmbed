@@ -110,5 +110,16 @@ def export_config_command(
     export_config(fp)
 
 
+@config_cli.command(name="test-db", help="Test Postgres DB connection")
+def test_db_connection():
+    sql = "SELECT schema_name FROM information_schema.schemata"
+    try:
+        eng = create_engine(conf.postgres_uri)
+        with eng.connect() as conn:
+            conn.execute(text(sql))
+        print("Repository database connection successful.")
+    except psycopg2.Error as e:
+        print(f"Repository database connection failed: {e}")
+
 if __name__ == "__main__":
     config_cli()
