@@ -1,9 +1,11 @@
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine, Engine, text
 from pathlib import Path
 from typing import Any
+import psycopg2
 
 from pydantic import computed_field
 from sqlite_utils import Database
+import typer
 from constants import (
     MD_DB,
     REPO_DATABASE,
@@ -19,7 +21,7 @@ from constants import (
     USER,
     POSTGRES_URI,
     _md_db,
-    _repo_db
+    _repo_db,
 )
 from ignore_ext import IGNORE_EXTENSIONS
 from ignore_parts import IGNORE_PARTS
@@ -49,6 +51,11 @@ class Config(BaseSettings):
     md_db_uri: str = SQLITE_MD_URI
 
     model_config = {
+        "json_encoders": {
+            Path: lambda v: v.as_posix(),
+            Database: lambda v: str(v),
+            Engine: lambda v: str(v),
+        }
     }
 
     @computed_field
@@ -67,13 +74,41 @@ class Config(BaseSettings):
         return None
 
 
-config = Config()
-print(config.md_db.table_names())
+conf = Config()
+config_cli = typer.Typer(
+    name="config", no_args_is_help=True, help="Configuration commands"
+)
 
-eng = config.postgres_db
-if eng is not None:
-    with eng.connect() as conn:
-        result = conn.execute("SELECT 1")
-        print(result.fetchone())
-else:
-    print("Postgres database is not available.")
+
+def ppconfig_conf():
+    print(conf.model_dump_json(indent=4))
+
+
+def export_config(fp: str):
+    fp = Path(fp).resolve() / "file_injester.config.json"
+    with open(fp, "w") as f:
+        f.write(
+            conf.model_dump_json(indent=4, exclude={"md_db", "repo_db", "postgres_db"})
+        )
+
+
+@config_cli.command(name="show")
+def show_config():
+    ppconfig_conf()
+
+
+@config_cli.command(name="export")
+def export_config_command(
+    fp: str = typer.Argument(
+        ...,
+        file_okay=False,
+        dir_okay=True,
+        exists=False,
+        help="Directory to export config file to",
+    )
+):
+    export_config(fp)
+
+
+if __name__ == "__main__":
+    config_cli()

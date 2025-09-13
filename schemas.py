@@ -93,9 +93,7 @@ class DocumentRecordModel(BaseModel):
         allow_population_by_field_name = True
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None,
-            "ChunkRecordModel": lambda v: (
-                v.model_dump_json(indent=2) if v else None
-            ),
+            "ChunkRecordModel": lambda v: (v.model_dump_json(indent=2) if v else None),
         }
 
 

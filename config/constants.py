@@ -8,10 +8,28 @@ from sqlite_utils import Database
 
 IS_INITIALIZED = False
 
+# determine where to look for files:
+
+# Root of the app
 _root_dir = Path(__file__).resolve().parent.parent
-_app_data_dir = os.getenv("APP_DATA_DIR", _root_dir.parent / "data")
-_storage = os.getenv("STORAGE", _app_data_dir)
+_app_data_dir = _root_dir.parent / "data"
+
+# or the storage path from the system
+_storage = os.getenv("_STORAGE", _app_data_dir)
+
+# Pick the storage path
 _app_data_dir = Path(_storage).resolve() if _storage else Path(_app_data_dir).resolve()
+
+# .env file path resolution
+_app_dotenv = _root_dir.parent / ".env"
+
+# Load environment variables from .env file
+load_dotenv(_app_dotenv)
+
+# CRITICAL we have a connection to POSTGRES
+_postgres_uri = os.getenv("PG_DB_URL", None)
+if not _postgres_uri:
+    print("WARNING: PG_DB_URL not set in environment, Postgres DB will be disabled")
 
 _host = os.getenv("COMPUTERNAME", "unknown")
 _user = os.getenv("USERNAME", "unknown")
@@ -24,12 +42,9 @@ _repo_db = _app_data_dir / "repo.db"
 _md_vault = _app_data_dir / "md_vault"
 
 # setup config files
-_app_dotenv = _root_dir.parent / ".env"
 _ignore_parts_path = _app_data_dir / "ignore_parts.json"
 _ignore_ext_path = _app_data_dir / "ignore_ext.json"
 _md_xref = _app_data_dir / "md_xref.json"
-
-_postgres_uri = os.getenv("PG_DB_URL", None)
 
 
 def _init_config():
@@ -46,8 +61,6 @@ def _init_config():
 if not IS_INITIALIZED:
     _init_config()
 
-
-load_dotenv(_app_dotenv)
 
 # sqlite-utils Databases
 MD_DB: Database = Database(_md_db)
@@ -66,7 +79,9 @@ EMBEDDING_LENGTH: int = 768
 EMBED_MODEL_ID: str = "nomic-ai/nomic-embed-text-v1.5"
 EMBED_MODEL_NAME: str = "nomic-embed-text"
 
-OBSIDIAN_EXE: str = f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
+OBSIDIAN_EXE: str = (
+    f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
+)
 
 SQLITE_REPO_URI: str = f"sqlite:///{_repo_db}"
 SQLITE_MD_URI: str = f"sqlite:///{_md_db}"
