@@ -9,13 +9,9 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
 )
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.dialects.postgresql import BYTEA
-
+from ._base import Base
 import schemas
-
-Base = declarative_base()
 
 
 class InputModel(Base):

@@ -34,7 +34,7 @@ _host = os.getenv("COMPUTERNAME", "unknown")
 _user = os.getenv("USERNAME", "unknown")
 
 # setup db paths
-local_db_path = _app_data_dir / "md.db"
+local_db_path = _app_data_dir / "local.db"
 
 # setup vault dir
 _md_vault = _app_data_dir / "md_vault"
@@ -43,6 +43,8 @@ _md_vault = _app_data_dir / "md_vault"
 _ignore_parts_path = _app_data_dir / "ignore_parts.json"
 _ignore_ext_path = _app_data_dir / "ignore_ext.json"
 _md_xref = _app_data_dir / "md_xref.json"
+_headers_path = _app_data_dir / "headers.json"
+_config_path = _app_data_dir / "config.json"
 
 
 def _init_config():
@@ -52,6 +54,7 @@ def _init_config():
     Path(_app_data_dir).mkdir(parents=True, exist_ok=True)
     Path(_app_dotenv).touch(exist_ok=True)
     Path(local_db_path).touch(exist_ok=True)
+    Path(_headers_path).touch(exist_ok=True)
     IS_INITIALIZED = True
 
 

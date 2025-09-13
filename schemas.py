@@ -16,10 +16,7 @@ class _BaseModel(BaseModel):
             datetime: lambda v: v.isoformat() if v else None,
             set: lambda v: "[" + ", ".join(v) + "]" if v else "[]",
             list: lambda v: "[" + ", ".join(v) + "]" if v else "[]",
-            BaseModel: lambda v: v.model_dump_json(indent=2) if v else None,
-            "ChunkRecordModel": lambda v: (v.model_dump_json(indent=2) if v else None),
-            llm.models.EmbeddingModel: lambda v: v.model_id if v else str(v),
-            Database: lambda v: str(v) if v else None,
+            Exception: lambda v: str(v) if v else None,
         }
 
 
@@ -149,13 +146,14 @@ class ScanResult(_BaseModel):
     id: str
     root: str
     name: str
-    scan_type: str  # <-- Add this field
+    scan_type: str
     files: list[str] | None
     scan_start: datetime
     scan_end: datetime
     duration: float
     options: dict
-    error: list[str] | None
+    user: str
+    host: str
 
     @computed_field
     def total_files(self) -> int:

@@ -1,4 +1,4 @@
-from asyncio import subprocess
+import subprocess  # <-- Correct import
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Set
@@ -17,22 +17,24 @@ def _iter_files(base: Path) -> Iterable[Path]:
             yield item
 
 
-def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
+def _should_skip(
+    item: Path, parts: Set[str] = app_config.ignore_parts
+) -> bool:
     # Skip if any path segment matches a blocked part
     return any(seg in parts for seg in item.parts)
 
 
 def _scan_core(
     path: str, tracked_only: bool = True, md_only: bool = False
-) -> List[ScanResult]:
+) -> ScanResult:
     """
     Generic scanner for repos and vaults.
     Returns a list of ScanResult objects.
     """
-    results: List[ScanResult] = []
+    scan_result: ScanResult
     base = Path(path).resolve()
 
-    # Determine scan_type and marker pattern based on switches
+    # --- Restored original logic block per your feedback ---
     if md_only:
         scan_type = "vault"
         marker_pattern = app_config.vault_folder
@@ -40,15 +42,14 @@ def _scan_core(
         scan_type = "repo"
         marker_pattern = ".git"
     else:
-        # Fallback to a general repo scan if no specific switch is passed
         scan_type = "repo"
         marker_pattern = ".git"
 
-    for marker in base.rglob(marker_pattern):
-        parts_with_git = app_config.ignore_parts | {".git"}
+    # --- Corrected way to create the ignore set from a list ---
+    ignore_list = set(app_config.ignore_parts) | {".git"}
 
-        # Only consider directory markers, and skip if the parent is in the ignore list
-        if not marker.is_dir() or _should_skip(marker.parent, parts_with_git):
+    for marker in base.rglob(marker_pattern):
+        if not marker.is_dir() or _should_skip(marker.parent, ignore_list):
             continue
 
         root = marker.parent.resolve()
@@ -56,7 +57,6 @@ def _scan_core(
         files: Set[str] = set()
         scan_start = datetime.now(tz=timezone.utc)
 
-        # File-gathering logic based on scan_type
         if scan_type == "repo":
             if tracked_only:
                 try:
@@ -65,21 +65,21 @@ def _scan_core(
                         capture_output=True,
                         text=True,
                         check=True,
+                        encoding="utf-8",
                     )
                     for line in out.stdout.splitlines():
                         p = (root / line).resolve()
                         if (
-                            _should_skip(p)
+                            _should_skip(p, ignore_list)
                             or p.suffix in app_config.ignore_extensions
                             or p.name in app_config.ignore_extensions
                         ):
                             continue
                         files.add(Path(line).as_posix())
                 except Exception:
-                    # Fallback: full walk if git unavailable
                     for f in _iter_files(root):
                         if (
-                            _should_skip(f)
+                            _should_skip(f, ignore_list)
                             or f.suffix in app_config.ignore_extensions
                             or f.name in app_config.ignore_extensions
                         ):
@@ -89,7 +89,7 @@ def _scan_core(
             else:
                 for f in _iter_files(root):
                     if (
-                        _should_skip(f)
+                        _should_skip(f, ignore_list)
                         or f.suffix in app_config.ignore_extensions
                         or f.name in app_config.ignore_extensions
                     ):
@@ -107,31 +107,28 @@ def _scan_core(
         scan_end = datetime.now(tz=timezone.utc)
         duration = (scan_end - scan_start).total_seconds()
 
-        results.append(
-            ScanResult(
-                root=root.as_posix(),
-                name=name,
-                scan_type=scan_type,  # <-- Populate the new field
-                files=files,
-                scan_start=scan_start,
-                scan_end=scan_end,
-                duration=duration,
-                options={
-                    "scan_type": scan_type,
-                    "path": path,
-                    "tracked_only": tracked_only,
-                    "md_only": md_only,
-                },
-                error=None,  # <-- Bonus fix: changed 'errors' to 'error'
-            )
+        scan_result = ScanResult(
+            id=uuid4().hex,
+            root=root.as_posix(),
+            name=name,
+            scan_type=scan_type,
+            files=list(files),
+            scan_start=scan_start,
+            scan_end=scan_end,
+            duration=duration,
+            options={
+                "path_arg": path,
+                "scan_type": scan_type,
+                "tracked_only": tracked_only,
+                "md_only": md_only,
+            },
         )
+    return scan_result
 
-    return results
 
-
-def scan_repos(path: str, tracked_only: bool = True) -> List[ScanResult]:
+def scan_repos(path: str) -> List[ScanResult]:
     """Return a list of ScanResult objects for any folder containing a .git."""
-    return _scan_core(path, tracked_only=tracked_only)
+    return _scan_core(path, tracked_only=True)
 
 
 def scan_vaults(path: str) -> List[ScanResult]:
@@ -150,7 +147,6 @@ def list_files(
     files: List[Path] = []
     root = Path(path).resolve()
     scan_start = datetime.now(tz=timezone.utc)
-    errors = []
     options = {
         "path_arg": str(path),
         "json": json,
@@ -165,11 +161,10 @@ def list_files(
                 (item.is_file() and not dirs) and not _should_skip(item, parts_with_git)
             ) or (item.is_dir() and dirs and not _should_skip(item, parts_with_git)):
                 files.append(item)
-        except Exception as e:
-            errors.append(str(e))
+        except Exception:
+            pass
     scan_end = datetime.now(tz=timezone.utc)
     duration = (scan_end - scan_start).total_seconds()
-    errors_str = "; ".join(errors) if errors else None
     result = ScanResult(
         id=uuid4().hex,
         root=root.as_posix(),
@@ -180,7 +175,6 @@ def list_files(
         scan_end=scan_end,
         duration=duration,
         options=options,
-        error=errors_str,
     )
     if store:
         db = Database(app_config.db_path)
@@ -201,11 +195,9 @@ def scan_repos_command(
     path: str = typer.Argument(
         ..., help="Path to scan", dir_okay=True, file_okay=False
     ),
-    tracked_only: bool = typer.Option(True, help="Only scan tracked files"),
 ):
-    results = scan_repos(path, tracked_only=tracked_only)
-    for result in results:
-        typer.echo(result.model_dump_json(indent=2))
+    result = scan_repos(path)
+    typer.echo(result.model_dump_json(indent=2))
 
 
 @file_filter_cli.command(
@@ -216,9 +208,8 @@ def scan_vaults_command(
         ..., help="Path to scan", dir_okay=True, file_okay=False
     ),
 ):
-    results = scan_vaults(path)
-    for result in results:
-        typer.echo(result.model_dump_json(indent=2))
+    result = scan_vaults(path)
+    typer.echo(result.model_dump_json(indent=2))
 
 
 @file_filter_cli.command(

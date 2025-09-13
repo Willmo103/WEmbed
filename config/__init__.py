@@ -19,6 +19,8 @@ from .constants import (
     local_db_path,
     VAULT_FOLDER,
     VAULT_EXTENSIONS,
+    _config_path,
+    _headers_path,
 )
 from .ignore_ext import IGNORE_EXTENSIONS
 from .ignore_parts import IGNORE_PARTS
