@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Set
 
-from sqlite_utils import Database
+from typer import Typer
+import typer
+
 from config import app_config
 from pydantic import BaseModel
 
@@ -187,11 +189,14 @@ def list_files(
     return "\n".join(f.as_posix() for f in files)
 
 
-class ListFilesOptions(BaseModel):
-    path: str
-    json: bool = False
-    nl: bool = False
-    store: bool = True
-    dirs: bool = False
-    table_name: str = "scan_results"
-    db: Database = app_config.db
+file_filter_cli = typer.Typer(name="files")
+
+
+@file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
+def scan_repos_command(
+    path: str = typer.Argument(..., help="Path to scan"),
+    tracked_only: bool = typer.Option(True, help="Only scan tracked files"),
+):
+    results = scan_repos(path, tracked_only=tracked_only)
+    for result in results:
+        typer.echo(result.model_dump_json(indent=2))

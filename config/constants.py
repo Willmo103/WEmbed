@@ -15,7 +15,7 @@ _root_dir = Path(__file__).resolve().parent.parent
 _app_data_dir = _root_dir.parent / "data"
 
 # or the storage path from the system
-_storage = os.getenv("_STORAGE", _app_data_dir)
+_storage = os.getenv("INGESTOR_STORAGE", _app_data_dir)
 
 # Pick the storage path
 _app_data_dir = Path(_storage).resolve() if _storage else Path(_app_data_dir).resolve()

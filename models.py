@@ -13,6 +13,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.dialects.postgresql import BYTEA
 
+import schemas
 Base = declarative_base()
 
 
@@ -24,6 +25,18 @@ class InputModel(Base):
     status = Column(String, nullable=False)
     errors = Column(String, nullable=True)
     added_at = Column(DateTime, nullable=False)
+    processed_at = Column(DateTime, nullable=True)
+
+    def to_schema(self) -> schemas.InputOut:
+        return schemas.InputOut(
+            id=self.id,
+            source=self.source,
+            source_type=self.source_type,
+            status=self.status,
+            errors=self.errors,
+            added_at=self.added_at.isoformat() if self.added_at else None,
+            processed_at=self.processed_at.isoformat() if self.processed_at else None,
+        )
 
 
 class Chunk(Base):

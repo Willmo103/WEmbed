@@ -22,18 +22,6 @@ class FileLine(BaseModel):
     def id(self) -> str:
         return f"{self.file_id}:{self.line_number}"
 
-    def save_to_sqlite(self, db: Database, table_name: str = "file_lines"):
-        db[table_name].insert(self.model_dump(), pk="id", replace=True, alter=True)
-
-    def delete_from_sqlite(self, db: Database, table_name: str = "file_lines"):
-        db[table_name].delete(where={"id": self.id})
-
-    def update_in_sqlite(self, db: Database, table_name: str = "file_lines"):
-        db[table_name].upsert(self.model_dump(), pk="id", alter=True)
-
-    def update_embedding(self, db: Database, table_name: str = "file_lines"):
-        db[table_name].update({"embedding": self.embedding}, where={"id": self.id})
-
 
 class FileRecord(BaseModel):
     id: str
@@ -74,29 +62,6 @@ class FileRecord(BaseModel):
     def bump_version(self):
         self.version += 1
 
-    def save_to_sqlite(self, db: Database, table_name: str = "files"):
-        db[table_name].insert(self.model_dump(), pk="id", replace=True, alter=True)
-        self.save_lines_to_sqlite(db)
-
-    def delete_from_sqlite(self, db: Database, table_name: str = "files"):
-        db[table_name].delete({"id": self.id})
-
-    def update_in_sqlite(self, db: Database, table_name: str = "files"):
-        self.updated_at = datetime.now(tz=timezone.utc)
-        db[table_name].upsert(self.model_dump(), pk="id", alter=True)
-
-    def table(db: Database, table_name: str = "files") -> Table:
-        return db[table_name]
-
-    @classmethod
-    def from_sqlite(
-        cls, db: Database, file_id: str, table_name: str = "files"
-    ) -> Optional["FileRecord"]:
-        data = db[table_name].get(where={"id": file_id})
-        if data:
-            return cls(**data)
-        return None
-
 
 class DocumentRecordModel(BaseModel):
     id: int
@@ -119,19 +84,6 @@ class DocumentRecordModel(BaseModel):
             datetime: lambda v: v.isoformat() if v else None,
             "ChunkRecordModel": lambda v: (v.model_dump_json(indent=2) if v else None),
         }
-
-    def save_to_sqlite(self, db: Database, tablename: str = "documents"):
-        db[tablename].insert(self.model_dump(), pk="id", replace=True, alter=True)
-
-    def delete_from_sqlite(self, db: Database, tablename: str = "documents"):
-        db[tablename].delete(where={"id": self.id})
-
-    def update_in_sqlite(self, db: Database, tablename: str = "documents"):
-        self.updated_at = datetime.now(tz=timezone.utc)
-        db[tablename].update(self.model_dump(), where={"id": self.id})
-
-    def table(db: Database, tablename: str = "documents"):
-        return db[tablename]
 
 
 class ChunkRecordModel(BaseModel):
@@ -220,13 +172,12 @@ class ScanResult(BaseModel):
             datetime: lambda v: v.isoformat() if v else None,
         }
 
-    def save_to_sqlite(self, db: Database, table_name: str = "scan_results"):
-        db[table_name].insert(self.model_dump(), pk="id", replace=True, alter=True)
 
-    def delete_from_sqlite(self, db: Database, table_name: str = "scan_results"):
-        db[table_name].delete(where={"id": self.id})
-
-    def update_in_sqlite(self, db: Database, table_name: str = "scan_results"):
-        self.updated_at = datetime.now(tz=timezone.utc)
-        db[table_name].update(self.model_dump(), where={"id": self.id})
-
+class InputOut(BaseModel):
+    id: int
+    source: str
+    source_type: str
+    status: str
+    errors: str | None
+    added_at: datetime
+    processed_at: datetime
