@@ -99,6 +99,7 @@ def test_db_connection() -> bool:
     except psycopg2.Error:
         return False
 
+
 @config_cli.command(name="show")
 def show_config():
     ppconfig_conf()

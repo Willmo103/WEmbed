@@ -83,6 +83,8 @@ class FileLine(Base):
     __tablename__ = "file_lines"
     id = Column(Integer, primary_key=True, autoincrement=True)
     file_id = Column(ForeignKey("files.id"), nullable=False)
+    file_repo_name = Column(String, nullable=False)
+    file_repo_type = Column(String, nullable=False)
     line_number = Column(Integer, nullable=False)
     line_text = Column(Text, nullable=False)
     embedding = Column(String, nullable=True)

@@ -84,4 +84,3 @@ SQLITE_MD_URI: str = f"sqlite:///{_md_db}"
 HOST: str = _host
 USER: str = _user
 POSTGRES_URI: str = _postgres_uri
-
