@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Set
 
+import llm
 from pydantic import BaseModel, computed_field
+from sqlalchemy import Table
 from sqlite_utils import Database
 from docling_core.types.doc.document import DoclingDocument
 from docling_core.transforms.chunker.base import BaseChunk
@@ -11,6 +13,7 @@ class FileLine(BaseModel):
     file_id: str
     file_repo_name: str
     file_repo_type: str
+    file_version: str
     line_number: int
     line_text: str
     embedding: Optional[list[float]] = None
@@ -19,21 +22,17 @@ class FileLine(BaseModel):
     def id(self) -> str:
         return f"{self.file_id}:{self.line_number}"
 
-    def save_to_sqlite(self, db: Database):
-        db["file_lines"].insert(
-            self.model_dump(), pk="id", replace=True, alter=True
-        )
+    def save_to_sqlite(self, db: Database, table_name: str = "file_lines"):
+        db[table_name].insert(self.model_dump(), pk="id", replace=True, alter=True)
 
-    def delete_from_sqlite(self, db: Database):
-        db["file_lines"].delete(where={"id": self.id})
+    def delete_from_sqlite(self, db: Database, table_name: str = "file_lines"):
+        db[table_name].delete(where={"id": self.id})
 
-    def update_in_sqlite(self, db: Database):
-        db["file_lines"].upsert(self.model_dump(), pk="id", alter=True)
+    def update_in_sqlite(self, db: Database, table_name: str = "file_lines"):
+        db[table_name].upsert(self.model_dump(), pk="id", alter=True)
 
-    def update_embedding(self, db: Database):
-        db["file_lines"].update(
-            {"embedding": self.embedding}, where={"id": self.id}
-        )
+    def update_embedding(self, db: Database, table_name: str = "file_lines"):
+        db[table_name].update({"embedding": self.embedding}, where={"id": self.id})
 
 
 class FileRecord(BaseModel):
@@ -57,7 +56,7 @@ class FileRecord(BaseModel):
     content_text: str | None
     ctime_iso: str | None
     mtime_iso: str | None
-    created_at: str | None
+    created_at: datetime = datetime.now(tz=timezone.utc)
     line_count: int | None
     uri: Optional[str] | None
     mimetype: str | None
@@ -66,26 +65,34 @@ class FileRecord(BaseModel):
     model_config = {
         "from_attributes": True,
         "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {
+            datetime: lambda v: v.isoformat() if v else None,
+        },
     }
 
     def bump_version(self):
         self.version += 1
 
-    def save_to_sqlite(self, db: Database):
-        db["files"].insert(
-            self.model_dump(), pk="id", replace=True, alter=True
-        )
+    def save_to_sqlite(self, db: Database, table_name: str = "files"):
+        db[table_name].insert(self.model_dump(), pk="id", replace=True, alter=True)
         self.save_lines_to_sqlite(db)
 
-    def delete_from_sqlite(self, db: Database):
-        db["files"].delete({"id": self.id})
+    def delete_from_sqlite(self, db: Database, table_name: str = "files"):
+        db[table_name].delete({"id": self.id})
 
-    def update_in_sqlite(self, db: Database):
-        db["files"].upsert(self.model_dump(), pk="id", alter=True)
+    def update_in_sqlite(self, db: Database, table_name: str = "files"):
+        self.updated_at = datetime.now(tz=timezone.utc)
+        db[table_name].upsert(self.model_dump(), pk="id", alter=True)
+
+    def table(db: Database, table_name: str = "files") -> Table:
+        return db[table_name]
 
     @classmethod
-    def from_sqlite(cls, db: Database, file_id: str) -> Optional["FileRecord"]:
-        data = db["files"].get(where={"id": file_id})
+    def from_sqlite(
+        cls, db: Database, file_id: str, table_name: str = "files"
+    ) -> Optional["FileRecord"]:
+        data = db[table_name].get(where={"id": file_id})
         if data:
             return cls(**data)
         return None
@@ -102,7 +109,8 @@ class DocumentRecordModel(BaseModel):
     text: str | None
     doctags: str | None
     chunks_json: str | None
-    created_at: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -111,6 +119,19 @@ class DocumentRecordModel(BaseModel):
             datetime: lambda v: v.isoformat() if v else None,
             "ChunkRecordModel": lambda v: (v.model_dump_json(indent=2) if v else None),
         }
+
+    def save_to_sqlite(self, db: Database, tablename: str = "documents"):
+        db[tablename].insert(self.model_dump(), pk="id", replace=True, alter=True)
+
+    def delete_from_sqlite(self, db: Database, tablename: str = "documents"):
+        db[tablename].delete(where={"id": self.id})
+
+    def update_in_sqlite(self, db: Database, tablename: str = "documents"):
+        self.updated_at = datetime.now(tz=timezone.utc)
+        db[tablename].update(self.model_dump(), where={"id": self.id})
+
+    def table(db: Database, tablename: str = "documents"):
+        return db[tablename]
 
 
 class ChunkRecordModel(BaseModel):
@@ -149,7 +170,8 @@ class DocumentOut(BaseModel):
     text: str | None
     doctags: str | None
     chunks: ChunkList | None
-    created_at: str = datetime.now(tz=timezone.utc).isoformat()
+    created_at: str
+    updated_at: str | None
 
 
 class StringContentOut(BaseModel):
@@ -157,27 +179,32 @@ class StringContentOut(BaseModel):
     source_type: str
     source_ref: str | None
     created_at: str
+    content: str | None
 
 
-class MarkdownOut(StringContentOut):
-    markdown: str
+class LlmCollectionParams(BaseModel):
+    name: str
+    db: Database | None = None
+    model: llm.models.EmbeddingModel | None = None
+    model_id: str | None = None
+    create: bool = True
+
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {
+            llm.models.EmbeddingModel: lambda v: v.model_id if v else str(v),
+        },
+    }
 
 
-class HtmlOut(StringContentOut):
-    html: str
+class ScanResult(BaseModel):
+    root: str
+    name: str
+    files: Set[str]
+    scanned_at: str = datetime.now(tz=timezone.utc).isoformat()
 
-
-class TextOut(StringContentOut):
-    text: str
-
-
-class DoclingDocOut(StringContentOut):
-    dl_doc: str | None
-
-
-class ChunksJsonOut(StringContentOut):
-    chunks_json: str | None
-
-
-class DoctagsOut(StringContentOut):
-    doctags: str | None
+    @computed_field
+    def total_files(self) -> int:
+        return len(self.files)

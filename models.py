@@ -58,10 +58,10 @@ class FileRecord(Base):
     markdown = Column(Text, nullable=True)
     ctime_iso = Column(DateTime, nullable=False)
     mtime_iso = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, nullable=False, default="now()")
     line_count = Column(Integer, nullable=False)
     uri = Column(String, nullable=False)
     mimetype = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default="now()")
 
 
 class DocumentRecord(Base):
@@ -77,6 +77,7 @@ class DocumentRecord(Base):
     doctags = Column(String, nullable=True)
     chunks_json = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
 
 
 class FileLine(Base):

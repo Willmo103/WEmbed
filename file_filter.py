@@ -3,6 +3,7 @@ from asyncio import subprocess
 from pathlib import Path
 from typing import Iterable, List, Set
 from config import app_config
+from pydantic import BaseModel
 
 
 def _iter_files(base: Path) -> Iterable[Path]:
@@ -85,9 +86,7 @@ def _scan_core(
     return results
 
 
-def scan_repos(
-    path: str, tracked_only: bool = True
-) -> List[Tuple[str, str, Set[str]]]:
+def scan_repos(path: str, tracked_only: bool = True) -> List[Tuple[str, str, Set[str]]]:
     """Return list of tuples (repo_root, name, files) for any folder containing a .git."""
     return _scan_core(path, ".git", tracked_only)
 

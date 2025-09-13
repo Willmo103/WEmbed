@@ -18,7 +18,7 @@ from constants import (
     POSTGRES_URI,
     local_db_path,
     VAULT_FOLDER,
-    VAULT_EXTENSIONS
+    VAULT_EXTENSIONS,
 )
 from ignore_ext import IGNORE_EXTENSIONS
 from ignore_parts import IGNORE_PARTS
@@ -81,7 +81,9 @@ def export_config(fp: str):
     fp = Path(fp).resolve() / "file_injester.config.json"
     with open(fp, "w") as f:
         f.write(
-            app_config.model_dump_json(indent=4, exclude={"md_db", "repo_db", "postgres_db"})
+            app_config.model_dump_json(
+                indent=4, exclude={"md_db", "repo_db", "postgres_db"}
+            )
         )
 
 
