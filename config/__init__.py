@@ -1,14 +1,11 @@
 from sqlalchemy import create_engine, Engine, text
 from pathlib import Path
-from typing import Any
 import psycopg2
 
 from pydantic import computed_field
 from sqlite_utils import Database
 import typer
 from constants import (
-    MD_DB,
-    REPO_DATABASE,
     MD_VAULT,
     STORAGE,
     EMBED_MODEL_ID,

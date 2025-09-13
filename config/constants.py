@@ -62,10 +62,6 @@ if not IS_INITIALIZED:
     _init_config()
 
 
-# sqlite-utils Databases
-MD_DB: Database = Database(_md_db)
-REPO_DATABASE: Database = Database(_repo_db)
-
 # data dirs
 STORAGE: Path = _app_data_dir
 MD_VAULT: Path = _md_vault
@@ -89,22 +85,3 @@ HOST: str = _host
 USER: str = _user
 POSTGRES_URI: str = _postgres_uri
 
-
-def print_config():
-    print(
-        f"""
-_root_dir: {_root_dir}
-_app_data_dir: {_app_data_dir}
-_host: {_host}
-_user: {_user}
-_md_vault: {_md_vault}
-_md_xref: {_md_xref}
-_ignore_parts_path: {_ignore_parts_path}
-_ignore_ext_path: {_ignore_ext_path}
-_repo_uri: {SQLITE_REPO_URI.replace('\\', '/')}
-_md_uri: {SQLITE_MD_URI.replace('\\', '/')}
-"""
-    )
-
-
-print_config()
