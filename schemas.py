@@ -212,3 +212,21 @@ class ScanResult(BaseModel):
     @computed_field
     def total_files(self) -> int:
         return len(self.files)
+
+    class Config:
+        from_attributes = True
+        allow_population_by_field_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,
+        }
+
+    def save_to_sqlite(self, db: Database, table_name: str = "scan_results"):
+        db[table_name].insert(self.model_dump(), pk="id", replace=True, alter=True)
+
+    def delete_from_sqlite(self, db: Database, table_name: str = "scan_results"):
+        db[table_name].delete(where={"id": self.id})
+
+    def update_in_sqlite(self, db: Database, table_name: str = "scan_results"):
+        self.updated_at = datetime.now(tz=timezone.utc)
+        db[table_name].update(self.model_dump(), where={"id": self.id})
+

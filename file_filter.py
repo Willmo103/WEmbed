@@ -1,8 +1,9 @@
-from ast import Tuple
 from asyncio import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List, Set
+
+from sqlite_utils import Database
 from config import app_config
 from pydantic import BaseModel
 
@@ -15,104 +16,127 @@ def _iter_files(base: Path) -> Iterable[Path]:
             yield item
 
 
-def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
+def _should_skip(
+    item: Path, parts: Set[str] = app_config.ignore_parts
+) -> bool:
     # Skip if any path segment matches a blocked part
     return any(seg in parts for seg in item.parts)
 
 
 def _scan_core(
-    path: str, pattern: str, tracked_only: bool = True
-) -> List[Tuple[str, str, Set[str]]]:
+    path: str, tracked_only: bool = False, md_only: bool = False
+) -> List[ScanResult]:
     """
-    Generic scanner used by repo/vault functions.
-    Returns (root, name, files) tuples.
+    Generic scanner for repos and vaults.
+    Returns a list of ScanResult objects.
     """
-    results: List[Tuple[str, str, Set[str]]] = []
+    results: List[ScanResult] = []
     base = Path(path).resolve()
 
-    for marker in base.rglob(pattern):
-        # Do not mutate IGNORE_PARTS; extend for this check only
+    # Determine scan_type and marker pattern based on switches
+    if md_only:
+        scan_type = "vault"
+        marker_pattern = app_config.vault_folder
+    elif tracked_only:
+        scan_type = "repo"
+        marker_pattern = ".git"
+    else:
+        # Fallback to a general repo scan if no specific switch is passed
+        scan_type = "repo"
+        marker_pattern = ".git"
+
+    for marker in base.rglob(marker_pattern):
         parts_with_git = app_config.ignore_parts | {".git"}
 
-        # Only consider directory markers, and skip if the parent is in ignore list
+        # Only consider directory markers, and skip if the parent is in the ignore list
         if not marker.is_dir() or _should_skip(marker.parent, parts_with_git):
             continue
 
-        repo_root = marker.parent.resolve()
-        name = repo_root.name
+        root = marker.parent.resolve()
+        name = root.name
         files: Set[str] = set()
+        scan_start = datetime.now(tz=timezone.utc)
 
-        if tracked_only:
-            try:
-                out = subprocess.run(
-                    ["git", "-C", str(repo_root), "ls-files"],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                for line in out.stdout.splitlines():
-                    p = (repo_root / line).resolve()
-                    if _should_skip(p):
-                        continue
+        # File-gathering logic based on scan_type
+        if scan_type == "repo":
+            if tracked_only:
+                try:
+                    out = subprocess.run(
+                        ["git", "-C", str(root), "ls-files"],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
+                    for line in out.stdout.splitlines():
+                        p = (root / line).resolve()
+                        if (
+                            _should_skip(p)
+                            or p.suffix in app_config.ignore_extensions
+                            or p.name in app_config.ignore_extensions
+                        ):
+                            continue
+                        files.add(Path(line).as_posix())
+                except Exception:
+                    # Fallback: full walk if git unavailable
+                    for f in _iter_files(root):
+                        if (
+                            _should_skip(f)
+                            or f.suffix in app_config.ignore_extensions
+                            or f.name in app_config.ignore_extensions
+                        ):
+                            continue
+                        rel = f.relative_to(root).as_posix()
+                        files.add(rel)
+            else:
+                for f in _iter_files(root):
                     if (
-                        p.suffix in app_config.ignore_extensions
-                        or p.name in app_config.ignore_extensions
-                    ):
-                        continue
-                    files.add(Path(line).as_posix())
-            except Exception:
-                # Fallback: full walk if git unavailable
-                for f in _iter_files(repo_root):
-                    if _should_skip(f):
-                        continue
-                    if (
-                        f.suffix in app_config.ignore_extensions
+                        _should_skip(f)
+                        or f.suffix in app_config.ignore_extensions
                         or f.name in app_config.ignore_extensions
                     ):
                         continue
-                    rel = f.relative_to(repo_root).as_posix()
+                    rel = f.relative_to(root).as_posix()
                     files.add(rel)
-        else:
-            for f in _iter_files(repo_root):
-                if _should_skip(f):
+
+        elif scan_type == "vault":
+            for f in root.rglob("*.md"):
+                if app_config.vault_folder in f.parts:
                     continue
-                if (
-                    f.suffix in app_config.ignore_extensions
-                    or f.name in app_config.ignore_extensions
-                ):
-                    continue
-                rel = f.relative_to(repo_root).as_posix()
+                rel = f.relative_to(root).as_posix()
                 files.add(rel)
 
-        results.append((repo_root.as_posix(), name, files))
+        scan_end = datetime.now(tz=timezone.utc)
+        duration = (scan_end - scan_start).total_seconds()
+
+        results.append(
+            ScanResult(
+                root=root.as_posix(),
+                name=name,
+                files=files,
+                scan_start=scan_start,
+                scan_end=scan_end,
+                duration=duration,
+                options={
+                    "scan_type": scan_type,
+                    "path": path,
+                    "tracked_only": tracked_only,
+                    "md_only": md_only,
+                },
+                errors=None,
+            )
+        )
 
     return results
 
 
-def scan_repos(path: str, tracked_only: bool = True) -> List[Tuple[str, str, Set[str]]]:
-    """Return list of tuples (repo_root, name, files) for any folder containing a .git."""
-    return _scan_core(path, ".git", tracked_only)
+def scan_repos(path: str, tracked_only: bool = True) -> List[ScanResult]:
+    """Return a list of ScanResult objects for any folder containing a .git."""
+    return _scan_core(path, tracked_only=tracked_only)
 
 
-def scan_vaults(path: str) -> List[Tuple[str, str, Set[str]]]:
-    """Return list of tuples (vault_root, name, files) for any Obsidian vault under path."""
-    results: List[Tuple[str, str, Set[str]]] = []
-    base = Path(path).resolve()
-    for marker in base.rglob(app_config.vault_folder):
-        vault_root = marker.parent.resolve()
-        if _should_skip(vault_root):
-            continue
-        name = vault_root.name
-        files: Set[str] = set()
-        # rglob is recursive; "*.md" is sufficient
-        for f in vault_root.rglob("*.md"):
-            if app_config.vault_folder in f.parts:
-                # exclude files inside .obsidian
-                continue
-            rel = f.relative_to(vault_root).as_posix()
-            files.add(rel)
-        results.append((vault_root.as_posix(), name, files))
-    return results
+def scan_vaults(path: str) -> List[ScanResult]:
+    """Return a list of ScanResult objects for any Obsidian vault under path."""
+    return _scan_core(path, md_only=True)
 
 
 def list_files(
@@ -121,7 +145,7 @@ def list_files(
     nl: bool = False,
     store: bool = True,
     dirs: bool = False,
-) -> List[Path]:
+) -> str | List[Path]:
     """List all files in a directory, excluding ignored paths."""
     files: List[Path] = []
     root = Path(path).resolve()
@@ -135,8 +159,8 @@ def list_files(
     }
     for item in root.rglob("*"):
         try:
-            if ((item.is_file() and not dirs) and _should_skip(item)) or (
-                item.is_dir() and dirs and _should_skip(item)
+            if ((item.is_file() and not dirs) and not _should_skip(item)) or (
+                item.is_dir() and dirs and not _should_skip(item)
             ):
                 files.append(item)
         except Exception as e:
@@ -147,11 +171,27 @@ def list_files(
     result = ScanResult(
         root=root.as_posix(),
         name=root.name,
-        files=files,
+        files=[f.as_posix() for f in files],
         scan_start=scan_start,
         scan_end=scan_end,
         duration=duration,
         options=options,
         errors=errors_str,
     )
-    return files
+    if store:
+        result.save_to_sqlite(db=app_config.db, table_name="scan_results")
+    if json:
+        return result.model_dump_json(indent=2)
+    if nl:
+        return "\n".join(f.as_posix() for f in files)
+    return "\n".join(f.as_posix() for f in files)
+
+
+class ListFilesOptions(BaseModel):
+    path: str
+    json: bool = False
+    nl: bool = False
+    store: bool = True
+    dirs: bool = False
+    table_name: str = "scan_results"
+    db: Database = app_config.db
