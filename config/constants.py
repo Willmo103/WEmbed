@@ -80,3 +80,5 @@ LOCAL_DB_URI: str = f"sqlite:///{local_db_path}"
 HOST: str = _host
 USER: str = _user
 POSTGRES_URI: str = _postgres_uri
+VAULT_FOLDER = ".obsidian"
+VAULT_EXTENSIONS = {".md"}

@@ -20,7 +20,20 @@ class FileLine(BaseModel):
         return f"{self.file_id}:{self.line_number}"
 
     def save_to_sqlite(self, db: Database):
-        db["file_lines"].insert(self.model_dump(), pk="id", replace=True, alter=True)
+        db["file_lines"].insert(
+            self.model_dump(), pk="id", replace=True, alter=True
+        )
+
+    def delete_from_sqlite(self, db: Database):
+        db["file_lines"].delete(where={"id": self.id})
+
+    def update_in_sqlite(self, db: Database):
+        db["file_lines"].upsert(self.model_dump(), pk="id", alter=True)
+
+    def update_embedding(self, db: Database):
+        db["file_lines"].update(
+            {"embedding": self.embedding}, where={"id": self.id}
+        )
 
 
 class FileRecord(BaseModel):
@@ -59,20 +72,23 @@ class FileRecord(BaseModel):
         self.version += 1
 
     def save_to_sqlite(self, db: Database):
-        db["files"].insert(self.model_dump(), pk="id", replace=True, alter=True)
+        db["files"].insert(
+            self.model_dump(), pk="id", replace=True, alter=True
+        )
         self.save_lines_to_sqlite(db)
 
-    def save_lines_to_sqlite(self, db: Database):
-        lines = self.content_text.splitlines()
-        for i, line in enumerate(lines):
-            file_line = FileLine(
-                file_id=self.id,
-                file_repo_name=self.source_name,
-                file_repo_type=self.source,
-                line_number=i + 1,
-                line_text=line,
-            )
-            file_line.save_to_sqlite(db)
+    def delete_from_sqlite(self, db: Database):
+        db["files"].delete({"id": self.id})
+
+    def update_in_sqlite(self, db: Database):
+        db["files"].upsert(self.model_dump(), pk="id", alter=True)
+
+    @classmethod
+    def from_sqlite(cls, db: Database, file_id: str) -> Optional["FileRecord"]:
+        data = db["files"].get(where={"id": file_id})
+        if data:
+            return cls(**data)
+        return None
 
 
 class DocumentRecordModel(BaseModel):

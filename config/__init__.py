@@ -17,6 +17,8 @@ from constants import (
     USER,
     POSTGRES_URI,
     local_db_path,
+    VAULT_FOLDER,
+    VAULT_EXTENSIONS
 )
 from ignore_ext import IGNORE_EXTENSIONS
 from ignore_parts import IGNORE_PARTS
@@ -42,6 +44,8 @@ class Config(BaseSettings):
     max_tokens: int = MAX_TOKENS
     host: str = HOST
     user: str = USER
+    vault_folder: str = VAULT_FOLDER
+    vault_extensions: set[str] = VAULT_EXTENSIONS
 
     model_config = {
         "json_encoders": {
@@ -63,28 +67,28 @@ class Config(BaseSettings):
         return None
 
 
-conf = Config()
+app_config = Config()
 config_cli = typer.Typer(
     name="config", no_args_is_help=True, help="Configuration commands"
 )
 
 
 def ppconfig_conf():
-    print(conf.model_dump_json(indent=4))
+    print(app_config.model_dump_json(indent=4))
 
 
 def export_config(fp: str):
     fp = Path(fp).resolve() / "file_injester.config.json"
     with open(fp, "w") as f:
         f.write(
-            conf.model_dump_json(indent=4, exclude={"md_db", "repo_db", "postgres_db"})
+            app_config.model_dump_json(indent=4, exclude={"md_db", "repo_db", "postgres_db"})
         )
 
 
 def test_db_connection() -> bool:
     sql = "SELECT schema_name FROM information_schema.schemata"
     try:
-        eng = create_engine(conf.remote_db_uri)
+        eng = create_engine(app_config.remote_db_uri)
         with eng.connect() as conn:
             conn.execute(text(sql))
             return True
