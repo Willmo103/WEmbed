@@ -17,9 +17,7 @@ def _iter_files(base: Path) -> Iterable[Path]:
             yield item
 
 
-def _should_skip(
-    item: Path, parts: Set[str] = app_config.ignore_parts
-) -> bool:
+def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
     # Skip if any path segment matches a blocked part
     return any(seg in parts for seg in item.parts)
 

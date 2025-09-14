@@ -46,7 +46,9 @@ def insert_configs(data_path: str | None = None):
         ignore_part = IgnoreParts(part=part)
         db["ignore_parts"].upsert(ignore_part.model_dump(), pk="part")
 
-    print(f"Inserted {len(exts)} ignore_ext, {len(parts)} ignore_parts, {len(xrefs)} md_xref")
+    print(
+        f"Inserted {len(exts)} ignore_ext, {len(parts)} ignore_parts, {len(xrefs)} md_xref"
+    )
 
 
 if __name__ == "__main__":
