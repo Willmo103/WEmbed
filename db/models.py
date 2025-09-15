@@ -13,6 +13,13 @@ from sqlalchemy.dialects.postgresql import BYTEA
 from ._base import Base
 import schemas
 
+class Sources(Base):
+    __tablename__ = "sources"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    type = Column(String, nullable=False)
+    ref = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False)
 
 class InputModel(Base):
     __tablename__ = "inputs"

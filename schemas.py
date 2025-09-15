@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import List, Optional, List
 
 import llm
-from pydantic import BaseModel, Json, computed_field, Field
+from pydantic import BaseModel, Json, Field, computed_field, Field
 from sqlite_utils import Database
 from docling_core.transforms.chunker.base import BaseChunk
 
@@ -22,8 +22,10 @@ class FileLine(_BaseModel):
     line_number: int
     line_text: str
     embedding: Optional[List[float]] = None
+    embedding: Optional[List[float]] = None
 
     @computed_field
+    @property
     @property
     def id(self) -> str:
         return f"{self.file_id}:{self.line_number}"
@@ -35,6 +37,28 @@ class FileRecord(_BaseModel):
     source: str
     source_root: str
     source_name: str
+    host: Optional[str] = None
+    user: Optional[str] = None
+    name: Optional[str] = None
+    stem: Optional[str] = None
+    path: Optional[str] = None
+    relative_path: Optional[str] = None
+    suffix: Optional[str] = None
+    sha256: Optional[str] = None
+    md5: Optional[str] = None
+    mode: Optional[str] = None
+    size: Optional[int] = None
+    content: Optional[bytes] = None
+    content_text: Optional[str] = None
+    ctime_iso: Optional[str] = None
+    mtime_iso: Optional[str] = None
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(datetime.timezone.utc)
+    )
+    line_count: Optional[int] = None
+    uri: Optional[str] = None
+    mimetype: Optional[str] = None
+    markdown: Optional[str] = None
     host: Optional[str] = None
     user: Optional[str] = None
     name: Optional[str] = None
@@ -82,7 +106,15 @@ class DocumentRecordModel(_BaseModel):
     text: Optional[str] = None
     doctags: Optional[str] = None
     chunks_json: Optional[str] = None
+    source_ref: Optional[int] = None
+    dl_doc: Optional[str] = None
+    markdown: Optional[str] = None
+    html: Optional[str] = None
+    text: Optional[str] = None
+    doctags: Optional[str] = None
+    chunks_json: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 
