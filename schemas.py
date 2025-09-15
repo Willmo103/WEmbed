@@ -58,29 +58,8 @@ class FileRecord(_BaseModel):
     line_count: Optional[int] = None
     uri: Optional[str] = None
     mimetype: Optional[str] = None
-    markdown: Optional[str] = None
-    host: Optional[str] = None
-    user: Optional[str] = None
-    name: Optional[str] = None
-    stem: Optional[str] = None
-    path: Optional[str] = None
-    relative_path: Optional[str] = None
-    suffix: Optional[str] = None
-    sha256: Optional[str] = None
-    md5: Optional[str] = None
-    mode: Optional[str] = None
-    size: Optional[int] = None
-    content: Optional[bytes] = None
-    content_text: Optional[str] = None
-    ctime_iso: Optional[str] = None
-    mtime_iso: Optional[str] = None
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc)
-    )
-    line_count: Optional[int] = None
-    uri: Optional[str] = None
-    mimetype: Optional[str] = None
-    markdown: Optional[str] = None
+    markdown: Optional[str] = None host: Optional[str] = None
+
 
     def bump_version(self):
         self.version += 1
