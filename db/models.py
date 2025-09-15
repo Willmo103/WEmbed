@@ -100,3 +100,16 @@ class FileLine(Base):
     line_text = Column(Text, nullable=False)
     embedding = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False)
+
+
+class MarkdownFpXref(Base):
+    __tablename__ = "md_fp_xref"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    file_sha256 = Column(ForeignKey("files.sha256"), nullable=False, unique=True)
+    file_uri = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    source_root = Column(String, nullable=False)
+    source_name = Column(String, nullable=False)
+    source_type = Column(String, nullable=False)
+    vault_path = Column(String, nullable=False)
+    last_rendered = Column(DateTime, nullable=False)

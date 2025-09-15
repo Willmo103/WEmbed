@@ -1,23 +1,17 @@
 from datetime import datetime, timezone
-from typing import Optional, Set
+from typing import Optional, List
 
 import llm
-from pydantic import BaseModel, computed_field
-from sqlalchemy import Table
+from pydantic import BaseModel, Json, computed_field, Field
 from sqlite_utils import Database
-from docling_core.types.doc.document import DoclingDocument
 from docling_core.transforms.chunker.base import BaseChunk
+
+from file_scanner import ListFileOpts
 
 
 class _BaseModel(BaseModel):
     class Config:
         from_attributes: bool = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None,
-            set: lambda v: "[" + ", ".join(v) + "]" if v else "[]",
-            list: lambda v: "[" + ", ".join(v) + "]" if v else "[]",
-            Exception: lambda v: str(v) if v else None,
-        }
 
 
 class FileLine(_BaseModel):
@@ -27,9 +21,10 @@ class FileLine(_BaseModel):
     file_version: str
     line_number: int
     line_text: str
-    embedding: Optional[list[float]] = None
+    embedding: Optional[List[float]] = None
 
     @computed_field
+    @property
     def id(self) -> str:
         return f"{self.file_id}:{self.line_number}"
 
@@ -40,59 +35,55 @@ class FileRecord(_BaseModel):
     source: str
     source_root: str
     source_name: str
-    host: str | None
-    user: str | None
-    name: str | None
-    stem: str | None
-    path: str | None
-    relative_path: str | None
-    suffix: str | None
-    sha256: str | None
-    md5: str | None
-    mode: str | None
-    size: int | None
-    content: bytes | None
-    content_text: str | None
-    ctime_iso: str | None
-    mtime_iso: str | None
-    created_at: datetime = datetime.now(tz=timezone.utc)
-    line_count: int | None
-    uri: Optional[str] | None
-    mimetype: str | None
-    markdown: str | None
+    host: Optional[str] = None
+    user: Optional[str] = None
+    name: Optional[str] = None
+    stem: Optional[str] = None
+    path: Optional[str] = None
+    relative_path: Optional[str] = None
+    suffix: Optional[str] = None
+    sha256: Optional[str] = None
+    md5: Optional[str] = None
+    mode: Optional[str] = None
+    size: Optional[int] = None
+    content: Optional[bytes] = None
+    content_text: Optional[str] = None
+    ctime_iso: Optional[str] = None
+    mtime_iso: Optional[str] = None
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(datetime.timezone.utc)
+    )
+    line_count: Optional[int] = None
+    uri: Optional[str] = None
+    mimetype: Optional[str] = None
+    markdown: Optional[str] = None
 
     def bump_version(self):
         self.version += 1
+
+
+class ChunkRecordModel(_BaseModel):
+    id: int
+    document_id: int
+    text_chunk: str  # Renamed from 'chunk' to avoid ambiguity
+    idx: int
+    embedding: List[float]
+    created_at: datetime
 
 
 class DocumentRecordModel(_BaseModel):
     id: int
     source: str
     source_type: str
-    source_ref: int | None
-    dl_doc: str | None
-    markdown: str | None
-    html: str | None
-    text: str | None
-    doctags: str | None
-    chunks_json: str | None
+    source_ref: Optional[int] = None
+    dl_doc: Optional[str] = None
+    markdown: Optional[str] = None
+    html: Optional[str] = None
+    text: Optional[str] = None
+    doctags: Optional[str] = None
+    chunks_json: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
-
-    model_config = {
-        "from_attributes": True,
-        "json_encoders": {
-            datetime: lambda v: v.isoformat() if v else None,
-        },
-    }
-
-
-class ChunkRecordModel(_BaseModel):
-    id: int
-    document_id: int
-    chunk: str
-    embedding: list[float]
-    created_at: str
+    updated_at: Optional[datetime] = None
 
 
 class ChunkModel(_BaseModel):
@@ -131,15 +122,11 @@ class StringContentOut(_BaseModel):
 class LlmCollectionParams(_BaseModel):
     name: str
     db: Database | None = None
-    model: llm.models.EmbeddingModel | None = None
+    model: llm.models.EmbeddingModel | None = Field(
+        None,
+    )
     model_id: str | None = None
     create: bool = True
-
-    model_config = {
-        "from_attributes": True,
-        "arbitrary_types_allowed": True,
-        "json_encoders": {},
-    }
 
 
 class ScanResult(_BaseModel):
@@ -151,7 +138,7 @@ class ScanResult(_BaseModel):
     scan_start: datetime
     scan_end: datetime
     duration: float
-    options: dict
+    options: Json[ListFileOpts]
     user: str
     host: str
 
