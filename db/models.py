@@ -1,56 +1,60 @@
+from datetime import datetime
 from sqlalchemy import (
-    BINARY,
+    JSON,
     Column,
     DateTime,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
-    UniqueConstraint,
-    create_engine,
 )
-from sqlalchemy.dialects.postgresql import BYTEA
 from ._base import Base
 import schemas
 
-class Sources(Base):
-    __tablename__ = "sources"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False)
-    type = Column(String, nullable=False)
-    ref = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False)
 
 class InputModel(Base):
     __tablename__ = "inputs"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    source = Column(String, nullable=False)
     source_type = Column(String, nullable=False)
     status = Column(String, nullable=False)
-    errors = Column(String, nullable=True)
-    added_at = Column(DateTime, nullable=False)
-    processed_at = Column(DateTime, nullable=True)
-
-    def to_schema(self) -> schemas.InputOut:
-        return schemas.InputOut(
-            id=self.id,
-            source=self.source,
-            source_type=self.source_type,
-            status=self.status,
-            errors=self.errors,
-            added_at=self.added_at.isoformat() if self.added_at else None,
-            processed_at=self.processed_at.isoformat() if self.processed_at else None,
-        )
+    errors = Column(
+        Text, nullable=True
+    )
+    added_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(datetime.timezone.utc),
+    )
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    output_doc_id = Column(ForeignKey("documents.id"), nullable=True)
+    input_file_id = Column(ForeignKey("files.id"), nullable=True)
 
 
 class Chunk(Base):
     __tablename__ = "chunks"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    document_id = Column(ForeignKey("documents.id"), nullable=False)
+    document_id = Column(
+        ForeignKey("documents.id"), nullable=False, index=True
+    )
     idx = Column(Integer, nullable=False)
-    chunk = Column(String, nullable=False)
-    embedding = Column(String, nullable=False)
-    created_at = Column(DateTime, nullable=False)
+    text_chunk = Column(Text, nullable=False)
+    embedding = Column(JSON, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(datetime.timezone.utc),
+    )
+
+    def to_schema(self) -> schemas.ChunkRecordModel:
+        return schemas.ChunkRecordModel(
+            id=self.id,
+            document_id=self.document_id,
+            idx=self.idx,
+            text_chunk=self.text_chunk,
+            embedding=self.embedding,  # This will be a Python list automatically
+            created_at=self.created_at,
+        )
 
 
 class FileRecord(Base):
@@ -70,7 +74,7 @@ class FileRecord(Base):
     md5 = Column(String, nullable=False)
     mode = Column(Integer, nullable=False)
     size = Column(Integer, nullable=False)
-    content = Column(BYTEA, nullable=True)
+    content = Column(LargeBinary, nullable=True)
     content_text = Column(Text, nullable=False)
     markdown = Column(Text, nullable=True)
     ctime_iso = Column(DateTime, nullable=False)
@@ -87,23 +91,35 @@ class DocumentRecord(Base):
     source = Column(String, nullable=False)
     source_type = Column(String, nullable=False)
     source_ref = Column(ForeignKey("inputs.id"), nullable=True)
-    dl_doc = Column(String, nullable=True)
-    markdown = Column(String, nullable=True)
-    html = Column(String, nullable=True)
-    text = Column(String, nullable=True)
-    doctags = Column(String, nullable=True)
-    chunks_json = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=True)
+    dl_doc = Column(Text, nullable=True)
+    markdown = Column(Text, nullable=True)
+    html = Column(Text, nullable=True)
+    text = Column(Text, nullable=True)
+    doctags = Column(Text, nullable=True)
+    chunks_json = Column(JSON, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(datetime.timezone.utc),
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        onupdate=lambda: datetime.now(datetime.timezone.utc),
+    )
 
 
 class FileLine(Base):
     __tablename__ = "file_lines"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    file_id = Column(ForeignKey("files.id"), nullable=False)
+    file_id = Column(ForeignKey("files.id"), nullable=False, index=True)
     file_repo_name = Column(String, nullable=False)
     file_repo_type = Column(String, nullable=False)
     line_number = Column(Integer, nullable=False)
     line_text = Column(Text, nullable=False)
-    embedding = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False)
+    embedding = Column(JSON, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(datetime.timezone.utc),
+    )
