@@ -18,9 +18,7 @@ class InputModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     source_type = Column(String, nullable=False)
     status = Column(String, nullable=False)
-    errors = Column(
-        Text, nullable=True
-    )
+    errors = Column(Text, nullable=True)
     added_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -34,9 +32,7 @@ class InputModel(Base):
 class Chunk(Base):
     __tablename__ = "chunks"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    document_id = Column(
-        ForeignKey("documents.id"), nullable=False, index=True
-    )
+    document_id = Column(ForeignKey("documents.id"), nullable=False, index=True)
     idx = Column(Integer, nullable=False)
     text_chunk = Column(Text, nullable=False)
     embedding = Column(JSON, nullable=False)

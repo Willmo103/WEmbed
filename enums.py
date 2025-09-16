@@ -8,3 +8,9 @@ class SourceTypes(str, Enum):
     WEB = "web"
     AI_RESPONSE = "ai_response"
     MD_FILE_TMP = "md_file_tmp"
+
+
+class ScanTypes(str, Enum):
+    REPO = "repo"
+    VAULT = "vault"
+    LIST = "list"
