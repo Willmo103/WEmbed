@@ -13,6 +13,50 @@ from sqlalchemy import (
 from ._base import Base
 
 
+class VaultRecord(Base):
+    __tablename__ = "dl_vault"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    host = Column(String, nullable=False)
+    root_path = Column(String, nullable=False)
+    files = Column(JSON, nullable=True)
+    file_count = Column(Integer, nullable=False, default=0)
+    indexed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class RepoRecord(Base):
+    __tablename__ = "dl_repo"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    host = Column(String, nullable=False)
+    root_path = Column(String, nullable=False)
+    files = Column(JSON, nullable=True)
+    file_count = Column(Integer, nullable=False, default=0)
+    indexed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class DocumentIndex(Base):
+    __tablename__ = "dl_document_index"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    file_id = Column(ForeignKey("dl_files.id"), nullable=False)
+    vault_path = Column(String, nullable=False)
+    last_rendered = Column(DateTime(timezone=True), nullable=True)
+
+
+class ScanResult(Base):
+    __tablename__ = "dl_scan_results"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    root_path = Column(String, nullable=False)
+    scan_type = Column(String, nullable=False)
+    files = Column(JSON, nullable=True)
+    scan_start = Column(DateTime(timezone=True), nullable=False)
+    scan_end = Column(DateTime(timezone=True), nullable=True)
+    duration = Column(Integer, nullable=True)
+    options = Column(JSON, nullable=True)
+    user = Column(String, nullable=False)
+    host = Column(String, nullable=False)
+
+
 class InputModel(Base):
     __tablename__ = "dl_inputs"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -110,4 +154,3 @@ class FileLine(Base):
         nullable=False,
         default=lambda: datetime.now(datetime.timezone.utc),
     )
-

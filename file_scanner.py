@@ -37,9 +37,7 @@ def _iter_files(base: Path) -> Iterable[Path]:
             yield item
 
 
-def _should_skip(
-    item: Path, parts: Set[str] = app_config.ignore_parts
-) -> bool:
+def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
     """Checks if a file's path contains any ignored segments."""
     return any(seg in parts for seg in item.parts)
 
@@ -90,8 +88,7 @@ def _scan_core(
                 except Exception:
                     # Fallback for non-git dirs or errors
                     file_paths = [
-                        f.relative_to(root).as_posix()
-                        for f in _iter_files(root)
+                        f.relative_to(root).as_posix() for f in _iter_files(root)
                     ]
             # All markdown files for VAULT scan
             elif scan_type == ScanTypes.VAULT:
@@ -102,9 +99,7 @@ def _scan_core(
                 ]
             # All files for non-tracked REPO scan
             else:
-                file_paths = [
-                    f.relative_to(root).as_posix() for f in _iter_files(root)
-                ]
+                file_paths = [f.relative_to(root).as_posix() for f in _iter_files(root)]
 
             # Common filtering logic
             for rel_path in file_paths:
@@ -185,13 +180,9 @@ def scan_list(path: str) -> Optional[ScanResult]:
 file_filter_cli = typer.Typer(name="files")
 
 
-@file_filter_cli.command(
-    name="repos", help="Scan for git repos", no_args_is_help=True
-)
+@file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
 def scan_repos_command(
-    path: str = typer.Argument(
-        ..., help="Path to scan", dir_okay=True, file_okay=False
-    )
+    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
     results = scan_repos(path)
     # Since multiple repos can be found, we dump the list of results
@@ -202,9 +193,7 @@ def scan_repos_command(
     name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True
 )
 def scan_vaults_command(
-    path: str = typer.Argument(
-        ..., help="Path to scan", dir_okay=True, file_okay=False
-    )
+    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
     results = scan_vaults(path)
     typer.echo([r.model_dump_json(indent=2) for r in results])

@@ -96,11 +96,14 @@ def init_db_command(
         False, "--local", "-l", help="Initialize local SQLite database"
     ),
     test_db: bool = typer.Option(
-        False, "--test", "-t", help="Initialize a test sqlite database at `.\\test_db.db`"
+        False,
+        "--test",
+        "-t",
+        help="Initialize a test sqlite database at `.\\test_db.db`",
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force re-initialization of the database"
-    )
+    ),
 ) -> None:
     success, msg = False, ""
     if remote:
