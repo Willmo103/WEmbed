@@ -15,7 +15,7 @@ import typer
 from sqlite_utils import Database
 
 from config import app_config
-from schemas import FileRecord, ScanResult
+from schemas import FileRecordSchema, ScanResult, ScanResultList
 from enums import ScanTypes
 
 # An Idiot's Guide to this change:
@@ -117,7 +117,7 @@ def _scan_core(
                     id=uuid4().hex,
                     root=root.as_posix(),
                     name=name,
-                    scan_type=scan_type.value,
+                    scan_type=ScanTypes.REPO.value,
                     files=sorted(list(files)),
                     scan_start=scan_start,
                     scan_end=scan_end,
@@ -127,6 +127,8 @@ def _scan_core(
                         "scan_type": scan_type.value,
                         "tracked_only": tracked_only,
                     },
+                    user=os.environ.get("USERNAME", "unknown"),
+                    host=os.environ.get("COMPUTERNAME", "unknown"),
                 )
             )
     # --- Logic for LIST scan (non-marker-based) ---
@@ -144,12 +146,14 @@ def _scan_core(
                 id=uuid4().hex,
                 root=root.as_posix(),
                 name=root.name,
-                scan_type=scan_type.value,
+                scan_type=ScanTypes.LIST.value,
                 files=sorted(list(files)),
                 scan_start=scan_start,
                 scan_end=scan_end,
                 duration=(scan_end - scan_start).total_seconds(),
                 options={"path_arg": path, "scan_type": scan_type.value},
+                host=os.environ.get("COMPUTERNAME", "unknown"),
+                user=os.environ.get("USERNAME", "unknown"),
             )
         )
 
@@ -177,7 +181,9 @@ def scan_list(path: str) -> Optional[ScanResult]:
 
 # --- Typer CLI Application ---
 
-file_filter_cli = typer.Typer(name="files")
+file_filter_cli = typer.Typer(
+    name="index", no_args_is_help=True, help="File Indexing Commands"
+)
 
 
 @file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
@@ -186,7 +192,8 @@ def scan_repos_command(
 ):
     results = scan_repos(path)
     # Since multiple repos can be found, we dump the list of results
-    typer.echo([r.model_dump_json(indent=2) for r in results])
+    for r in results:
+        typer.echo(r.model_dump_json(indent=2))
 
 
 @file_filter_cli.command(
@@ -196,7 +203,8 @@ def scan_vaults_command(
     path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
     results = scan_vaults(path)
-    typer.echo([r.model_dump_json(indent=2) for r in results])
+    for r in results:
+        typer.echo(r.model_dump_json(indent=2))
 
 
 @file_filter_cli.command(

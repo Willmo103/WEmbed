@@ -14,7 +14,7 @@ class _BaseModel(BaseModel):
         from_attributes: bool = True
 
 
-class FileLine(_BaseModel):
+class FileLineSchema(_BaseModel):
     file_id: str
     file_repo_name: str
     file_repo_type: str
@@ -29,10 +29,10 @@ class FileLine(_BaseModel):
         return f"{self.file_id}:{self.line_number}"
 
 
-class FileRecord(_BaseModel):
+class FileRecordSchema(_BaseModel):
     id: str
     version: int
-    source: str
+    source_type: str
     source_root: str
     source_name: str
     host: Optional[str] = None
@@ -57,9 +57,11 @@ class FileRecord(_BaseModel):
     uri: Optional[str] = None
     mimetype: Optional[str] = None
     markdown: Optional[str] = None
+    version: Optional[int] = None
 
     def bump_version(self):
-        self.version += 1
+        if self.version is not None:
+            self.version += 1
 
 
 class ChunkRecordModel(_BaseModel):
@@ -149,6 +151,17 @@ class ScanResult(_BaseModel):
     @computed_field
     def total_files(self) -> int:
         return len(self.files)
+
+
+class ScanResultList(_BaseModel):
+    results: list[ScanResult]
+
+    def add_result(self, result: ScanResult):
+        self.results.append(result)
+
+    def iter_results(self):
+        for result in self.results:
+            yield result
 
 
 class InputOut(_BaseModel):

@@ -12,6 +12,16 @@ from sqlalchemy import (
 )
 from ._base import Base
 
+# class FileSources(Base):
+#     __tablename__ = "dl_file_sources"
+#     id = Column(Integer, primary_key=True, autoincrement=True)
+#     file_id = Column(ForeignKey("dl_files.id"), nullable=False)
+#     name = Column(String, nullable=False)
+#     type = Column(String, nullable=False)
+#     root = Column(String, nullable=False)
+#     user = Column(String, nullable=False)
+#     host = Column(String, nullable=False)
+
 
 class VaultRecord(Base):
     __tablename__ = "dl_vault"
@@ -35,15 +45,14 @@ class RepoRecord(Base):
     indexed_at = Column(DateTime(timezone=True), nullable=True)
 
 
-class DocumentIndex(Base):
+class DocumentIndexRecord(Base):
     __tablename__ = "dl_document_index"
     id = Column(Integer, primary_key=True, autoincrement=True)
     file_id = Column(ForeignKey("dl_files.id"), nullable=False)
-    vault_path = Column(String, nullable=False)
     last_rendered = Column(DateTime(timezone=True), nullable=True)
 
 
-class ScanResult(Base):
+class ScanResultRecord(Base):
     __tablename__ = "dl_scan_results"
     id = Column(Integer, primary_key=True, autoincrement=True)
     root_path = Column(String, nullable=False)
@@ -57,7 +66,7 @@ class ScanResult(Base):
     host = Column(String, nullable=False)
 
 
-class InputModel(Base):
+class InputRecord(Base):
     __tablename__ = "dl_inputs"
     id = Column(Integer, primary_key=True, autoincrement=True)
     source_type = Column(String, nullable=False)
@@ -74,7 +83,7 @@ class InputModel(Base):
     input_file_id = Column(ForeignKey("dl_files.id"), nullable=True)
 
 
-class Chunk(Base):
+class ChunkRecord(Base):
     __tablename__ = "dl_chunks"
     id = Column(Integer, primary_key=True, autoincrement=True)
     document_id = Column(ForeignKey("dl_documents.id"), nullable=False, index=True)
@@ -91,8 +100,8 @@ class Chunk(Base):
 class FileRecord(Base):
     __tablename__ = "dl_files"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    source = Column(String, nullable=False)
     source_type = Column(String, nullable=False)
+    source_root = Column(String, nullable=False)
     source_name = Column(String, nullable=False)
     host = Column(String, nullable=False)
     user = Column(String, nullable=False)
@@ -140,7 +149,7 @@ class DocumentRecord(Base):
     )
 
 
-class FileLine(Base):
+class FileLineRecord(Base):
     __tablename__ = "dl_filelines"
     id = Column(Integer, primary_key=True, autoincrement=True)
     file_id = Column(ForeignKey("dl_files.id"), nullable=False, index=True)
