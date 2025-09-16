@@ -16,7 +16,7 @@ from sqlite_utils import Database
 
 from config import app_config
 from schemas import FileRecord, ScanResult
-from enums import
+from enums import ScanTypes
 
 # An Idiot's Guide to this change:
 # We've created an Enum to represent the different kinds of scans we can do.
@@ -221,7 +221,6 @@ def list_files_command(
     nl: bool = typer.Option(
         False, "--nl", "-n", help="Output as newline-delimited list."
     ),
-    store: bool = typer.Option(True, help="Store results in database."),
 ):
     result = scan_list(path)
     if not result:
@@ -229,13 +228,12 @@ def list_files_command(
         return
 
     # The formatting logic now lives here, in the presentation layer.
-    if store:
-        db = Database(app_config.db_path)
-        db["scan_results"].insert(result.model_dump(), pk="id", alter=True)
-        typer.secho(
-            f"Stored scan result {result.id} to the database.",
-            fg=typer.colors.GREEN,
-        )
+    db = Database(app_config.db_path)
+    db["scan_results"].insert(result.model_dump(), pk="id", alter=True)
+    typer.secho(
+        f"Stored scan result {result.id} to the database.",
+        fg=typer.colors.GREEN,
+    )
 
     if json:
         typer.echo(result.model_dump_json(indent=2))

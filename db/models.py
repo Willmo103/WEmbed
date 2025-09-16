@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (
     JSON,
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -10,11 +11,10 @@ from sqlalchemy import (
     Text,
 )
 from ._base import Base
-import schemas
 
 
 class InputModel(Base):
-    __tablename__ = "inputs"
+    __tablename__ = "dl_inputs"
     id = Column(Integer, primary_key=True, autoincrement=True)
     source_type = Column(String, nullable=False)
     status = Column(String, nullable=False)
@@ -24,15 +24,16 @@ class InputModel(Base):
         nullable=False,
         default=lambda: datetime.now(datetime.timezone.utc),
     )
+    processed = Column(Boolean, nullable=False, default=False)
     processed_at = Column(DateTime(timezone=True), nullable=True)
-    output_doc_id = Column(ForeignKey("documents.id"), nullable=True)
-    input_file_id = Column(ForeignKey("files.id"), nullable=True)
+    output_doc_id = Column(ForeignKey("dl_documents.id"), nullable=True)
+    input_file_id = Column(ForeignKey("dl_files.id"), nullable=True)
 
 
 class Chunk(Base):
-    __tablename__ = "chunks"
+    __tablename__ = "dl_chunks"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    document_id = Column(ForeignKey("documents.id"), nullable=False, index=True)
+    document_id = Column(ForeignKey("dl_documents.id"), nullable=False, index=True)
     idx = Column(Integer, nullable=False)
     text_chunk = Column(Text, nullable=False)
     embedding = Column(JSON, nullable=False)
@@ -42,19 +43,9 @@ class Chunk(Base):
         default=lambda: datetime.now(datetime.timezone.utc),
     )
 
-    def to_schema(self) -> schemas.ChunkRecordModel:
-        return schemas.ChunkRecordModel(
-            id=self.id,
-            document_id=self.document_id,
-            idx=self.idx,
-            text_chunk=self.text_chunk,
-            embedding=self.embedding,  # This will be a Python list automatically
-            created_at=self.created_at,
-        )
-
 
 class FileRecord(Base):
-    __tablename__ = "files"
+    __tablename__ = "dl_files"
     id = Column(Integer, primary_key=True, autoincrement=True)
     source = Column(String, nullable=False)
     source_type = Column(String, nullable=False)
@@ -82,11 +73,11 @@ class FileRecord(Base):
 
 
 class DocumentRecord(Base):
-    __tablename__ = "documents"
+    __tablename__ = "dl_documents"
     id = Column(Integer, primary_key=True, autoincrement=True)
     source = Column(String, nullable=False)
     source_type = Column(String, nullable=False)
-    source_ref = Column(ForeignKey("inputs.id"), nullable=True)
+    source_ref = Column(ForeignKey("dl_inputs.id"), nullable=True)
     dl_doc = Column(Text, nullable=True)
     markdown = Column(Text, nullable=True)
     html = Column(Text, nullable=True)
@@ -106,9 +97,9 @@ class DocumentRecord(Base):
 
 
 class FileLine(Base):
-    __tablename__ = "file_lines"
+    __tablename__ = "dl_filelines"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    file_id = Column(ForeignKey("files.id"), nullable=False, index=True)
+    file_id = Column(ForeignKey("dl_files.id"), nullable=False, index=True)
     file_repo_name = Column(String, nullable=False)
     file_repo_type = Column(String, nullable=False)
     line_number = Column(Integer, nullable=False)
@@ -119,3 +110,4 @@ class FileLine(Base):
         nullable=False,
         default=lambda: datetime.now(datetime.timezone.utc),
     )
+

@@ -1,3 +1,4 @@
+from tkinter.filedialog import test
 import psycopg2
 from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -27,18 +28,26 @@ def _get_engine(uri: str) -> Engine:
 
 def drop_models(uri: str) -> None:
     eng = _get_engine(uri)
-    sql = "DELETE FROM dl_docs"
+    sql = "DELETE FROM interface WHERE table_name Like 'dl_%';"
     with eng.connect() as conn:
         conn.execute(text(sql))
 
 
-def _init_db(uri: str, force: bool) -> None:
+def _init_db(uri: str, force: bool = False) -> tuple[bool, str]:
     global DB_INIT
     if not DB_INIT or force:
-        if force:
-            drop_models(uri)
-        create_models(uri)
-        DB_INIT = True
+        try:
+            if force:
+                try:
+                    drop_models(uri)
+                except Exception:
+                    pass
+            success, msg = create_models(uri)
+            if success:
+                DB_INIT = True
+            return success, msg
+        except Exception as e:
+            return False, f"Error initializing database: {e}"
 
 
 def create_models(uri: str) -> tuple[bool, str]:
@@ -86,11 +95,21 @@ def init_db_command(
     local: bool = typer.Option(
         False, "--local", "-l", help="Initialize local SQLite database"
     ),
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Force initialization (overwrite existing DB)"
+    test_db: bool = typer.Option(
+        False, "--test", "-t", help="Initialize a test sqlite database at `.\\test_db.db`"
     ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Force re-initialization of the database"
+    )
 ) -> None:
+    success, msg = False, ""
     if remote:
-        success, msg = _init_db(_remote_uri)
+        success, msg = _init_db(_remote_uri, force)
     if local:
-        success, msg = _init_db(_local_uri)
+        success, msg = _init_db(_local_uri, force)
+    if test:
+        success, msg = _init_db("sqlite:///test_db.db", force=True)
+    if not success:
+        print(f"Database initialization failed: {msg}")
+    else:
+        print(msg or "Database initialized successfully.")
