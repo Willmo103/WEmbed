@@ -1,6 +1,6 @@
 # file_record.py
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -61,9 +61,7 @@ class FileRecordSchema(BaseModel):
     content_text: Optional[str] = None
     ctime_iso: Optional[datetime] = None
     mtime_iso: Optional[datetime] = None
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc)
-    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     line_count: Optional[int] = None
     uri: Optional[str] = None
     mimetype: Optional[str] = None

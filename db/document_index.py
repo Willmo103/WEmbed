@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -86,9 +86,7 @@ class DocumentIndexCRUD:
     ) -> Optional[DocumentIndexRecord]:
         db_record = DocumentIndexCRUD.get_by_file_id(db, file_id)
         if db_record:
-            db_record.last_rendered = rendered_time or datetime.now(
-                datetime.timezone.utc
-            )
+            db_record.last_rendered = rendered_time or datetime.now(timezone.utc)
             db.commit()
             db.refresh(db_record)
         return db_record

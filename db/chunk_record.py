@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -19,7 +19,7 @@ class ChunkRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(datetime.timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
     )
 
 
@@ -29,9 +29,7 @@ class ChunkRecordSchema(BaseModel):
     idx: int
     text_chunk: str
     embedding: List[float]
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc)
-    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         from_attributes = True

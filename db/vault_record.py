@@ -1,6 +1,6 @@
 # vault_record.py
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import JSON, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -101,7 +101,7 @@ class VaultRecordCRUD:
         db_record = VaultRecordCRUD.get_by_id(db, vault_id)
         if db_record:
             db_record.file_count = file_count
-            db_record.indexed_at = datetime.now(datetime.timezone.utc)
+            db_record.indexed_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(db_record)
         return db_record

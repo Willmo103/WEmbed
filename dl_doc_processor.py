@@ -30,7 +30,7 @@ class DlDocProcessor:
     """Document processor for converting files to DoclingDocuments and creating embeddings."""
 
     def __init__(self):
-        self._embedder = llm.get_embedding_model(app_config.embedding_model_name)
+        self._embedder = llm.get_embedding_model(app_config.embed_model_name)
         self._tokenizer = HuggingFaceTokenizer.from_pretrained(
             app_config.embed_model_id
         )
@@ -38,11 +38,11 @@ class DlDocProcessor:
         self._headers = app_config.headers
         self._chunker = HybridChunker(
             tokenizer=self._tokenizer,
-            max_tokens=app_config.chunk_max_tokens,
+            max_tokens=app_config.max_tokens,
         )
         self._collection = llm.Collection(
             name="chunk_embeddings",
-            embedding_model=self._embedder,
+            model=self._embedder,
             db=app_config.local_db,
         )
 
@@ -101,12 +101,12 @@ class DlDocProcessor:
                 source=src,
                 source_type=source_type,
                 source_ref=input_record_id,
-                dl_doc=doc.model_dump(),
+                dl_doc=doc.model_dump_json(),
                 markdown=doc.export_to_markdown(),
                 html=doc.export_to_html(),
                 text=doc.export_to_text(),
                 doctags=doc.export_to_doctags(),
-                chunks_json=[],
+                chunks_json=None,
                 created_at=datetime.now(timezone.utc),
             )
 
@@ -137,7 +137,7 @@ class DlDocProcessor:
                         chunk.text = c_txt
 
                         # Add to chunks_json
-                        chunks_data.append(chunk.model_dump())
+                        chunks_data.append(chunk.model_dump_json())
 
                         # Generate embedding
                         embedding = self._embedder.embed(c_txt)
@@ -170,6 +170,7 @@ class DlDocProcessor:
                             fg=typer.colors.YELLOW,
                         )
 
+                chunks_data = str([chunk.model_dump_json() for chunk in chunks])
                 # Update document with chunks_json
                 DocumentRecordCRUD.update_chunks(session, doc_id, chunks_data)
 
@@ -237,6 +238,7 @@ class DlDocProcessor:
 
             # Create a temporary markdown file
             temp_md_path = Path(f"/tmp/temp_{file_record_id}.md")
+            temp_md_path.parent.mkdir(parents=True, exist_ok=True)
             temp_md_path.write_text(file_record.markdown, encoding="utf-8")
 
             try:

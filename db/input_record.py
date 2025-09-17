@@ -35,9 +35,7 @@ class InputRecordSchema(BaseModel):
     source_type: str
     status: str
     errors: Optional[List[str]] = None
-    added_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     processed: bool = False
     processed_at: Optional[datetime] = None
     output_doc_id: Optional[int] = None
@@ -96,7 +94,7 @@ class InputRecordCRUD:
 
     @staticmethod
     def get_unprocessed(db: Session) -> List[InputRecord]:
-        return db.query(InputRecord).filter(InputRecord.processed is False).all()
+        return db.query(InputRecord).filter(InputRecord.status == "pending").all()
 
     @staticmethod
     def get_by_file_id(db: Session, file_id: str) -> Optional[InputRecord]:
@@ -131,9 +129,7 @@ class InputRecordCRUD:
         db_record = InputRecordCRUD.get_by_id(db, input_id)
         if db_record:
             db_record.processed = True
-            db_record.processed_at = datetime.now(
-                timezone.utc
-            )
+            db_record.processed_at = datetime.now(timezone.utc)
             if output_doc_id:
                 db_record.output_doc_id = output_doc_id
             db.commit()

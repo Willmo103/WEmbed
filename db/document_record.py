@@ -1,6 +1,6 @@
 # document_record.py
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -28,12 +28,12 @@ class DocumentRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(datetime.timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-        onupdate=lambda: datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
 
@@ -48,9 +48,7 @@ class DocumentRecordSchema(BaseModel):
     text: Optional[str] = None
     doctags: Optional[str] = None
     chunks_json: Optional[Json[List[BaseChunk]]] = None
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc)
-    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
 
     class Config:
@@ -180,7 +178,7 @@ class DocumentRecordCRUD:
             for key, value in update_data.items():
                 setattr(db_record, key, value)
 
-            db_record.updated_at = datetime.now(datetime.timezone.utc)
+            db_record.updated_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(db_record)
         return db_record
@@ -200,7 +198,7 @@ class DocumentRecordCRUD:
                 db_record.markdown = markdown
             if html is not None:
                 db_record.html = html
-            db_record.updated_at = datetime.now(datetime.timezone.utc)
+            db_record.updated_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(db_record)
         return db_record
@@ -212,7 +210,7 @@ class DocumentRecordCRUD:
         db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
         if db_record:
             db_record.chunks_json = chunks_json
-            db_record.updated_at = datetime.now(datetime.timezone.utc)
+            db_record.updated_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(db_record)
         return db_record
