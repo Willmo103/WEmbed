@@ -18,6 +18,7 @@ from config import app_config
 from schemas import FileRecordSchema, ScanResult, ScanResultList
 from enums import ScanTypes
 from db import get_session, models
+
 # An Idiot's Guide to this change:
 # We've created an Enum to represent the different kinds of scans we can do.
 # Using an Enum instead of raw strings like "repo" or "vault" prevents typos
@@ -43,10 +44,7 @@ def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
 
 
 def _scan_core(
-    path: str,
-    scan_type: ScanTypes,
-    tracked_only: bool = False,
-    **kwargs
+    path: str, scan_type: ScanTypes, tracked_only: bool = False, **kwargs
 ) -> List[ScanResult]:
     """
     Core scanning logic for REPO, VAULT, and LIST scan types.
@@ -57,7 +55,7 @@ def _scan_core(
         tracked_only: Whether to include only tracked files (for REPO scans).
             e.g. the results of `git -C <path> ls-files`
     """
-    scan_results: ScanResultList = ScanResultList(results=[])
+    scan_result_list: ScanResultList = ScanResultList(results=[])
     base = Path(path).resolve()
     ignore_list = set(app_config.ignore_parts) | {".git"}
 
@@ -112,7 +110,7 @@ def _scan_core(
                     files.add(rel_path)
 
             scan_end = datetime.now(tz=timezone.utc)
-            scan_results.add_result(
+            scan_result_list.add_result(
                 ScanResult(
                     id=uuid4().hex,
                     root_path=root.as_posix(),
@@ -141,7 +139,7 @@ def _scan_core(
                 files.add(item.as_posix())
 
         scan_end = datetime.now(tz=timezone.utc)
-        scan_results.add_result(
+        scan_result_list.add_result(
             ScanResult(
                 id=uuid4().hex,
                 root_path=root.as_posix(),
@@ -157,19 +155,24 @@ def _scan_core(
             )
         )
 
-    if scan_results.files is not None:
+    for scan_res in scan_result_list.iter_results():
+        if scan_res.files and len(scan_res.files) > 0:
+            typer.echo(
+                f"Scan '{scan_res.name}' ({scan_res.scan_type}) found {len(scan_res.files)} files."
+            )
+            for f in scan_res.files:
 
 
-
-        return scan_results
+    return scan_result_list
 
 
 def _store_scan_results(results: ScanResultList) -> None:
     session = get_session()
     for r in results.iter_results():
-        scan_result = models.ScanResultRecord(
+        scan_result: models.Sc = models.ScanResultRecord(
             root_path=r.root_path,
             scan_type=r.scan_type,
+            scan_name=r.name,
             files=r.files,
             scan_start=r.scan_start,
             scan_end=r.scan_end,
@@ -211,6 +214,7 @@ def _store_vault_records(scan_results: ScanResultList) -> None:
         session.add(vault)
 
     session.commit()
+
 
 # --- CLI Wrapper Functions ---
 

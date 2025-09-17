@@ -1,5 +1,4 @@
 from pathlib import Path
-from tkinter.filedialog import test
 import psycopg2
 from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -100,7 +99,7 @@ def init_db_command(
     local: bool = typer.Option(
         False, "--local", "-l", help="Initialize local SQLite database"
     ),
-    test_db: bool = typer.Option(
+    test: bool = typer.Option(
         False,
         "--test",
         "-t",
@@ -136,10 +135,14 @@ def init_db_command(
             Path(app_config.app_storage).joinpath("test_db.db").unlink()
         try:
             typer.echo("Initializing test SQLite database...")
-            success, msg = _init_db("sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")), force=True)
+            success, msg = _init_db(
+                "sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")),
+                force=True,
+            )
+            if not success:
+                typer.echo(f"Error initializing test SQLite database: {msg}")
+            else:
+                typer.echo(msg or "Test SQLite database initialized successfully.")
         except Exception as e:
             typer.echo(f"Error initializing test SQLite database: {e}")
-    if not success:
-        print(f"Database initialization failed: {msg}")
-    else:
-        print(msg or "Database initialized successfully.")
+

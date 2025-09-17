@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Set
 
 import llm
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, Json, computed_field
 from sqlalchemy import Table
 from sqlite_utils import Database
 from docling_core.types.doc.document import DoclingDocument
@@ -78,19 +78,19 @@ class DocumentRecordModel(_BaseModel):
     source: str
     source_type: str
     source_ref: Optional[int] = None
-    dl_doc: Optional[str] = None
+    dl_doc: Optional[Json[DoclingDocument]] = None
     markdown: Optional[str] = None
     html: Optional[str] = None
     text: Optional[str] = None
     doctags: Optional[str] = None
-    chunks_json: Optional[str] = None
+    chunks_json: Optional[Json[List[BaseChunk]]] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
 
 class ChunkModel(_BaseModel):
     index: int
-    chunk: BaseChunk
+    chunk: Json[BaseChunk]
     embedding: list[float]
 
 

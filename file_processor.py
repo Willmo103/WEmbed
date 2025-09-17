@@ -24,6 +24,7 @@ class RepoFileProcessingPaths:
     render_path: Path
     vault_version_exists: bool
 
+
 @dataclass
 class VaultFileProcessingPaths:
     read_path: Path
@@ -34,6 +35,11 @@ class VaultFileProcessingPaths:
 def _get_repo_results() -> list[models.RepoRecord]:
     session = get_session()
     return session.query(models.RepoRecord).all()
+
+
+def _get_vault_results() -> list[models.VaultRecord]:
+    session = get_session()
+    return session.query(models.VaultRecord).all()
 
 
 def _get_repo_files() -> Generator[RepoFileProcessingPaths, None, None]:
@@ -47,18 +53,35 @@ def _get_repo_files() -> Generator[RepoFileProcessingPaths, None, None]:
             yield RepoFileProcessingPaths(
                 read_path=Path(root) / repo_file,
                 render_path=app_config.md_vault / "Repo" / name / repo_file + ".md",
-                vault_version_exists=True if (app_config.md_vault / "Repo" / name / repo_file + ".md").exists() else False,
+                vault_version_exists=(
+                    True
+                    if (
+                        app_config.md_vault / "Repo" / name / repo_file + ".md"
+                    ).exists()
+                    else False
+                ),
             )
 
 
 def _get_vault_files() -> Generator[VaultFileProcessingPaths, None, None]:
-    vault = app_config.md_vault / "Repo"
-    for vault_file in vault.glob("**/*.md"):
-        yield VaultFileProcessingPaths(
-            read_path=vault_file,
-            render_path=vault_file,
-            vault_version_exists=True
-        )
+    vaults = _get_vault_results()
+
+    for vault in vaults:
+        root = vault.root_path
+        name = vault.name
+
+        for vault_file in vault.files:
+            yield VaultFileProcessingPaths(
+                read_path=Path(root) / vault_file,
+                render_path=app_config.md_vault / "Vault" / name / vault_file + ".md",
+                vault_version_exists=(
+                    True
+                    if (
+                        app_config.md_vault / "Vault" / name / vault_file + ".md"
+                    ).exists()
+                    else False
+                ),
+            )
 
 
 def _get_latest_version(record: models.FileRecord, session: Session):
@@ -84,49 +107,16 @@ def _file_record_exists(path: Path) -> bool:
             while chunk := f.read(8192):
                 _sha256.update(chunk)
         sha256 = _sha256.hexdigest()
-    return session.query(models.FileRecord).filter(
-        models.FileRecord.path == path,
-        models.FileRecord.sha256 == sha256,
-        models.FileRecord.host == _host,
-        models.FileRecord.user == _user
-    ).count() > 0
-
-
-def save_markdown_to_vault(
-    record: FileRecordSchema,
-    source_type: str,
-    path: Path = app_config.md_vault,
-) -> None:
-
-    # Use the pre-calculated relative path from the record for efficiency
-    relative_path = Path(record.relative_path)
-
-    # Delete the entire folder if it exists
-    shutil.rmtree(dest_path.parent, ignore_errors=True)
-
-    dest_path = (path / source_type / record.source_name / relative_path).with_suffix(
-        record.suffix + ".md"
-    )
-
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-    dest_path.write_text(record.markdown, encoding="utf-8")
-    # Quieter output to let the progress bar be the main indicator.
-    # typer.echo(f"  -> Saved MD to: {dest_path}")
-    app_config.local_db["md_xref"].insert(
-        {
-            "file_sha256": record["sha256"],
-            "file_uri": record["uri"],
-            "file_path": record["path"],
-            "source_root": record["source_root"],
-            "source_name": record["source_name"],
-            "source_type": record["source"].split(":")[0],
-            "vault_path": dest_path.as_posix(),
-            "last_rendered": datetime.now(datetime.timezone.utc).isoformat(),
-        },
-        alter=True,
-        replace=True,
-        pk="file_sha256",
+    return (
+        session.query(models.FileRecord)
+        .filter(
+            models.FileRecord.path == path,
+            models.FileRecord.sha256 == sha256,
+            models.FileRecord.host == _host,
+            models.FileRecord.user == _user,
+        )
+        .count()
+        > 0
     )
 
 
@@ -259,14 +249,8 @@ def process_result_files(scan_result: ScanResult, db: Session) -> Optional[dict]
             mimetype=mimetypes.guess_type(full_path.name)[0],
         )
 
-
-
-        # The full markdown format is preserved here.
-
         file_record.markdown = _file_record_to_markdown(file_record)
 
-        # A new UUID is always generated, so replace=True is not needed.
-        # alter=True is good practice as it adds new columns if they exist in the record.
         models.FileRecord(
             id=file_record.id,
             version=file_record.version,
@@ -295,6 +279,7 @@ def process_result_files(scan_result: ScanResult, db: Session) -> Optional[dict]
             line_count=file_record.line_count,
         )
         db.add(file_record)
+        db.commit()
 
         return file_record
     except Exception as e:

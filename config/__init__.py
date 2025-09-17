@@ -1,6 +1,5 @@
-from sqlalchemy import create_engine, Engine, text
+from sqlalchemy import create_engine, Engine
 from pathlib import Path
-import psycopg2
 
 from pydantic import computed_field
 from sqlite_utils import Database
@@ -19,8 +18,6 @@ from .constants import (
     local_db_path,
     VAULT_FOLDER,
     VAULT_EXTENSIONS,
-    _config_path,
-    _headers_path,
 )
 from .ignore_ext import IGNORE_EXTENSIONS
 from .ignore_parts import IGNORE_PARTS
