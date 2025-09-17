@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -16,7 +16,7 @@ class InputRecord(Base):
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(datetime.timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
     )
     processed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     processed_at: Mapped[Optional[datetime]] = mapped_column(
@@ -36,7 +36,7 @@ class InputRecordSchema(BaseModel):
     status: str
     errors: Optional[List[str]] = None
     added_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc)
+        default_factory=lambda: datetime.now(timezone.utc)
     )
     processed: bool = False
     processed_at: Optional[datetime] = None
@@ -131,7 +131,9 @@ class InputRecordCRUD:
         db_record = InputRecordCRUD.get_by_id(db, input_id)
         if db_record:
             db_record.processed = True
-            db_record.processed_at = datetime.now(datetime.timezone.utc)
+            db_record.processed_at = datetime.now(
+                timezone.utc
+            )
             if output_doc_id:
                 db_record.output_doc_id = output_doc_id
             db.commit()

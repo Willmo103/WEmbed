@@ -2,10 +2,10 @@ import hashlib
 import mimetypes
 import os
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Generator, Optional
 from uuid import uuid4
+from datetime import datetime, timezone
 
 import typer
 
@@ -83,7 +83,7 @@ def create_file_record_from_path(
                 content if len(content) < 1024 * 1024 else None
             ),  # Don't store large files in DB
             content_text=content_text,
-            ctime_iso=datetime.fromtimestamp(stat.st_ctime, tz=timezone.utc),
+            ctime_iso=datetime.fromtimestamp(stat.st_birthtime, tz=timezone.utc),
             mtime_iso=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
             created_at=datetime.now(timezone.utc),
             line_count=line_count,
@@ -97,7 +97,7 @@ def create_file_record_from_path(
 
     except Exception as e:
         typer.secho(
-            f"Error creating file record for {file_path}: {e}",
+            f"\nError creating file record for {file_path}: {e}, {traceback.format_exc()}\n",
             fg=typer.colors.RED,
         )
         return None
@@ -274,7 +274,7 @@ def process_vault_files() -> None:
                 typer.secho(f"Error processing {file_path}: {e}", fg=typer.colors.RED)
                 with open("file_processor_errors.log", "a", encoding="utf-8") as log:
                     log.write(
-                        f"{datetime.now().isoformat()} - Error processing {file_path}: {e}\n"
+                        f"{datetime.now(tz=timezone.utc)} - Error processing {file_path}: {e}\n"
                     )
                     log.write(f"Traceback: {traceback.format_exc()}\n\n")
 
