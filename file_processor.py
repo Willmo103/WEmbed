@@ -1,5 +1,3 @@
-# file_processor.py
-
 import hashlib
 import mimetypes
 import os
@@ -12,7 +10,6 @@ from uuid import uuid4
 import typer
 
 from config import app_config
-from enums import SourceTypes
 from db import (
     get_session,
     VaultRecordCRUD,

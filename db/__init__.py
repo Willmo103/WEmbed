@@ -1,5 +1,3 @@
-# db/__init__.py
-
 from pathlib import Path
 import psycopg2
 from sqlalchemy import create_engine, Engine, text
