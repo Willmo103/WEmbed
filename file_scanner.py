@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Set
 from uuid import uuid4
 
+
 import typer
 from sqlite_utils import Database
 
@@ -18,16 +19,7 @@ from config import app_config
 from schemas import FileRecordSchema, ScanResult, ScanResultList
 from enums import ScanTypes
 from db import get_session, models
-# An Idiot's Guide to this change:
-# We've created an Enum to represent the different kinds of scans we can do.
-# Using an Enum instead of raw strings like "repo" or "vault" prevents typos
-# and makes the code's intent much clearer.
 
-# MOVED to enums.py
-# class ScanTypes(str, Enum):
-#     REPO = "repo"
-#     VAULT = "vault"
-#     LIST = "list"
 
 
 def _iter_files(base: Path) -> Iterable[Path]:
@@ -48,6 +40,7 @@ def _scan_core(
     tracked_only: bool = False,
     **kwargs
 ) -> List[ScanResult]:
+
     """
     Core scanning logic for REPO, VAULT, and LIST scan types.
 
@@ -59,6 +52,7 @@ def _scan_core(
     """
     scan_results: ScanResultList = ScanResultList(results=[])
     base = Path(path).resolve()
+
     ignore_list = set(app_config.ignore_parts) | {".git"}
 
     # --- Logic for REPO and VAULT scans (marker-based) ---

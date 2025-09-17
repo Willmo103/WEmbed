@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
-from typing import List, Optional, Set
+from typing import List, Optional, List
 
 import llm
-from pydantic import BaseModel, Field, computed_field
-from sqlalchemy import Table
+from pydantic import BaseModel, Json, Field, computed_field, Field
 from sqlite_utils import Database
-from docling_core.types.doc.document import DoclingDocument
 from docling_core.transforms.chunker.base import BaseChunk
+
+from file_scanner import ListFileOpts
 
 
 class _BaseModel(BaseModel):
@@ -22,8 +22,10 @@ class FileLineSchema(_BaseModel):
     line_number: int
     line_text: str
     embedding: Optional[List[float]] = None
+    embedding: Optional[List[float]] = None
 
     @computed_field
+    @property
     @property
     def id(self) -> str:
         return f"{self.file_id}:{self.line_number}"
@@ -57,7 +59,7 @@ class FileRecordSchema(_BaseModel):
     uri: Optional[str] = None
     mimetype: Optional[str] = None
     markdown: Optional[str] = None
-    version: Optional[int] = None
+
 
     def bump_version(self):
         if self.version is not None:
@@ -84,7 +86,15 @@ class DocumentRecordModel(_BaseModel):
     text: Optional[str] = None
     doctags: Optional[str] = None
     chunks_json: Optional[str] = None
+    source_ref: Optional[int] = None
+    dl_doc: Optional[str] = None
+    markdown: Optional[str] = None
+    html: Optional[str] = None
+    text: Optional[str] = None
+    doctags: Optional[str] = None
+    chunks_json: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 
@@ -124,15 +134,11 @@ class StringContentOut(_BaseModel):
 class LlmCollectionParams(_BaseModel):
     name: str
     db: Database | None = None
-    model: llm.models.EmbeddingModel | None = None
+    model: llm.models.EmbeddingModel | None = Field(
+        None,
+    )
     model_id: str | None = None
     create: bool = True
-
-    model_config = {
-        "from_attributes": True,
-        "arbitrary_types_allowed": True,
-        "json_encoders": {},
-    }
 
 
 class ScanResult(_BaseModel):
@@ -144,7 +150,7 @@ class ScanResult(_BaseModel):
     scan_start: datetime
     scan_end: datetime
     duration: float
-    options: dict
+    options: Json[ListFileOpts]
     user: str
     host: str
 
