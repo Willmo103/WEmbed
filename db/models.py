@@ -25,11 +25,11 @@ from ._base import Base
 
 class ScanResultRecord(Base):
     __tablename__ = "dl_scan_results"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    root_path = Column(String, nullable=False)
-    scan_type = Column(String, nullable=False)
+    id = Column(String, primary_key=True, unique=True, index=True)
+    root_path = Column(String, nullable=False, index=True)
+    scan_type = Column(String, nullable=False, index=True)
     scan_name = Column(String, nullable=True)
-    files = Column(JSON, nullable=True)
+    files = Column(JSON, nullable=True, index=True)
     scan_start = Column(DateTime(timezone=True), nullable=False)
     scan_end = Column(DateTime(timezone=True), nullable=True)
     duration = Column(Integer, nullable=True)

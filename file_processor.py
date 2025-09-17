@@ -180,6 +180,47 @@ def _write_markdown_to_vault(record: FileRecordSchema, config: Config) -> None:
     dest_path.write_text(markdown_content, encoding="utf-8")
 
 
+def file_record_from_path(
+    pth: Path, src_type: str = None, src_name: str = None, source_root: str = None
+) -> FileRecordSchema:
+    if not pth.is_file() or not pth.exists():
+        return None
+
+    content = pth.read_bytes()
+    sha256 = hashlib.sha256(content).hexdigest()
+
+    return FileRecordSchema(
+        id=str(uuid4().hex),
+        version=1,
+        source_type="local",
+        source_root=str(pth.parent),
+        source_name=str(pth.name),
+        host=os.environ.get("COMPUTERNAME", "unknown"),
+        user=os.environ.get("USERNAME", "unknown"),
+        name=pth.name,
+        stem=pth.stem,
+        path=str(pth),
+        relative_path=str(pth.relative_to(pth.anchor)),
+        suffix=pth.suffix,
+        sha256=sha256,
+        md5=hashlib.md5(content).hexdigest(),
+        mode=oct(pth.stat().st_mode),
+        size=pth.stat().st_size,
+        content=content,
+        content_text=content.decode("utf-8", errors="replace"),
+        markdown=None,
+        ctime_iso=datetime.fromtimestamp(
+            pth.stat().st_birthtime, tz=datetime.timezone.utc
+        ).isoformat(),
+        mtime_iso=datetime.fromtimestamp(
+            pth.stat().st_mtime, tz=datetime.timezone.utc
+        ).isoformat(),
+        created_at=datetime.now(datetime.timezone.utc).isoformat(),
+        uri=f"file://{str(pth)}",
+        mimetype=mimetypes.guess_type(pth.name)[0],
+    )
+
+
 def process_result_files(scan_result: ScanResult, db: Session) -> Optional[dict]:
     """
     Processes a single file: creates a metadata record, generates markdown,

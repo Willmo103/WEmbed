@@ -156,11 +156,18 @@ def _scan_core(
         )
 
     for scan_res in scan_result_list.iter_results():
-        if scan_res.files and len(scan_res.files) > 0:
-            typer.echo(
-                f"Scan '{scan_res.name}' ({scan_res.scan_type}) found {len(scan_res.files)} files."
-            )
-            for f in scan_res.files:
+        db.add(models.ScanResultRecord(
+            root_path=scan_res.root_path,
+            name=scan_res.name,
+            scan_type=scan_res.scan_type,
+            files=scan_res.files,
+            scan_start=scan_res.scan_start,
+            scan_end=scan_res.scan_end,
+            duration=scan_res.duration,
+            options=scan_res.options,
+            user=scan_res.user,
+            host=scan_res.host,
+        ))
 
 
     return scan_result_list
