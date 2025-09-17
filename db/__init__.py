@@ -44,7 +44,7 @@ from .document_record import (
     StringContentOut,
     DocumentRecordCRUD,
 )
-from .file_line import FileLineRecord, FileLineSchema, FileLineCRUD
+from .file_line import FileLineRecord, FileLineCRUD
 
 
 # Database initialization and connection management
@@ -112,9 +112,7 @@ def get_session_local(uri: str = _local_uri) -> Session:
 
 def get_session_remote(uri: str = _remote_uri) -> Session | None:
     try:
-        return sessionmaker(
-            autocommit=False, autoflush=False, bind=_get_engine(uri)
-        )()
+        return sessionmaker(autocommit=False, autoflush=False, bind=_get_engine(uri))()
     except Exception:
         return None
 
@@ -159,13 +157,9 @@ def init_db_command(
             typer.echo("Initializing remote Postgres database...")
             success, msg = _init_db(_remote_uri, force)
             if not success:
-                typer.echo(
-                    f"Error initializing remote Postgres database: {msg}"
-                )
+                typer.echo(f"Error initializing remote Postgres database: {msg}")
             else:
-                typer.echo(
-                    msg or "Remote Postgres database initialized successfully."
-                )
+                typer.echo(msg or "Remote Postgres database initialized successfully.")
         except Exception as e:
             typer.echo(f"Error initializing remote Postgres database: {e}")
     if local:
@@ -175,9 +169,7 @@ def init_db_command(
             if not success:
                 typer.echo(f"Error initializing local SQLite database: {msg}")
             else:
-                typer.echo(
-                    msg or "Local SQLite database initialized successfully."
-                )
+                typer.echo(msg or "Local SQLite database initialized successfully.")
         except Exception as e:
             typer.echo(f"Error initializing local SQLite database: {e}")
     if test:
@@ -186,16 +178,13 @@ def init_db_command(
         try:
             typer.echo("Initializing test SQLite database...")
             success, msg = _init_db(
-                "sqlite:///"
-                + str(Path(app_config.app_storage).joinpath("test_db.db")),
+                "sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")),
                 force=True,
             )
             if not success:
                 typer.echo(f"Error initializing test SQLite database: {msg}")
             else:
-                typer.echo(
-                    msg or "Test SQLite database initialized successfully."
-                )
+                typer.echo(msg or "Test SQLite database initialized successfully.")
         except Exception as e:
             typer.echo(f"Error initializing test SQLite database: {e}")
 
