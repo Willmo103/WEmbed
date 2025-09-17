@@ -1,3 +1,5 @@
+from pathlib import Path
+from tkinter.filedialog import test
 import psycopg2
 from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -27,18 +29,26 @@ def _get_engine(uri: str) -> Engine:
 
 def drop_models(uri: str) -> None:
     eng = _get_engine(uri)
-    sql = "DELETE FROM dl_docs"
+    sql = "DELETE FROM interface WHERE table_name Like 'dl_%';"
     with eng.connect() as conn:
         conn.execute(text(sql))
 
 
-def _init_db(uri: str, force: bool) -> None:
+def _init_db(uri: str, force: bool = False) -> tuple[bool, str]:
     global DB_INIT
     if not DB_INIT or force:
-        if force:
-            drop_models(uri)
-        create_models(uri)
-        DB_INIT = True
+        try:
+            if force:
+                try:
+                    drop_models(uri)
+                except Exception:
+                    pass
+            success, msg = create_models(uri)
+            if success:
+                DB_INIT = True
+            return success, msg
+        except Exception as e:
+            return False, f"Error initializing database: {e}"
 
 
 def create_models(uri: str) -> tuple[bool, str]:
@@ -67,6 +77,10 @@ def get_session_remote(uri: str = _remote_uri) -> Session | None:
         return None
 
 
+def get_session() -> Session:
+    return get_session_remote() or get_session_local()
+
+
 db_cli = typer.Typer(name="db", no_args_is_help=True, help="Database commands")
 
 
@@ -86,11 +100,46 @@ def init_db_command(
     local: bool = typer.Option(
         False, "--local", "-l", help="Initialize local SQLite database"
     ),
+    test_db: bool = typer.Option(
+        False,
+        "--test",
+        "-t",
+        help="Initialize a test sqlite database at `.\\test_db.db`",
+    ),
     force: bool = typer.Option(
-        False, "--force", "-f", help="Force initialization (overwrite existing DB)"
+        False, "--force", "-f", help="Force re-initialization of the database"
     ),
 ) -> None:
+    success, msg = False, ""
     if remote:
-        success, msg = _init_db(_remote_uri)
+        try:
+            typer.echo("Initializing remote Postgres database...")
+            success, msg = _init_db(_remote_uri, force)
+            if not success:
+                typer.echo(f"Error initializing remote Postgres database: {msg}")
+            else:
+                typer.echo(msg or "Remote Postgres database initialized successfully.")
+        except Exception as e:
+            typer.echo(f"Error initializing remote Postgres database: {e}")
     if local:
-        success, msg = _init_db(_local_uri)
+        try:
+            typer.echo("Initializing local SQLite database...")
+            success, msg = _init_db(_local_uri, force)
+            if not success:
+                typer.echo(f"Error initializing local SQLite database: {msg}")
+            else:
+                typer.echo(msg or "Local SQLite database initialized successfully.")
+        except Exception as e:
+            typer.echo(f"Error initializing local SQLite database: {e}")
+    if test:
+        if Path(app_config.app_storage).joinpath("test_db.db").exists():
+            Path(app_config.app_storage).joinpath("test_db.db").unlink()
+        try:
+            typer.echo("Initializing test SQLite database...")
+            success, msg = _init_db("sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")), force=True)
+        except Exception as e:
+            typer.echo(f"Error initializing test SQLite database: {e}")
+    if not success:
+        print(f"Database initialization failed: {msg}")
+    else:
+        print(msg or "Database initialized successfully.")

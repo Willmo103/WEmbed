@@ -8,7 +8,7 @@ import typer
 from .constants import (
     MD_VAULT,
     STORAGE,
-    EMBED_MODEL_ID,
+    EMBED_MODEL_HF_ID,
     EMBED_MODEL_NAME,
     EMBEDDING_LENGTH,
     MAX_TOKENS,
@@ -40,7 +40,7 @@ class Config(BaseSettings):
     ignore_extensions: list[str] = IGNORE_EXTENSIONS
     md_xref: dict[str, str] = MD_XREF
     headers: dict[str, str] = HEADERS
-    embed_model_id: str = EMBED_MODEL_ID
+    embed_model_id: str = EMBED_MODEL_HF_ID
     embed_model_name: str = EMBED_MODEL_NAME
     embedding_length: int = EMBEDDING_LENGTH
     max_tokens: int = MAX_TOKENS
