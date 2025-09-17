@@ -8,24 +8,32 @@ import traceback
 from typing import Optional
 from uuid import uuid4
 from sqlite_utils import Database
+import typer
 from schemas import FileRecordSchema, ScanResult, ScanResultList
 from pathlib import Path
-from db import get_session_local, get_session_remote
+from db import get_session
 from db import models
 from sqlalchemy.orm import Session
-from config import app_config
+from config import Config, app_config
+
 
 def _get_latest_version(record: models.FileRecord, session: Session):
     return (
         session.query(models.FileRecord)
-        .filter(models.FileRecord.path == record.path, models.FileRecord.sha256 == record.sha256, models.FileRecord.host == record.host)
+        .filter(
+            models.FileRecord.path == record.path,
+            models.FileRecord.sha256 == record.sha256,
+            models.FileRecord.host == record.host,
+        )
         .order_by(models.FileRecord.version.desc())
         .first()
     )
 
 
 def save_markdown_to_vault(
-    record: FileRecordSchema, source_type: str, path: Path = app_config.md_vault,
+    record: FileRecordSchema,
+    source_type: str,
+    path: Path = app_config.md_vault,
 ) -> None:
 
     # Use the pre-calculated relative path from the record for efficiency
@@ -34,9 +42,9 @@ def save_markdown_to_vault(
     # Delete the entire folder if it exists
     shutil.rmtree(dest_path.parent, ignore_errors=True)
 
-    dest_path = (
-        path / source_type / record.source_name / relative_path
-    ).with_suffix(record.suffix + ".md")
+    dest_path = (path / source_type / record.source_name / relative_path).with_suffix(
+        record.suffix + ".md"
+    )
 
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -60,87 +68,8 @@ def save_markdown_to_vault(
     )
 
 
-
-
-def process_result_files(
-    sr: ScanResult,
-    db: Session
-) -> Optional[dict]:
-    """
-    Processes a single file: creates a metadata record, generates markdown,
-    saves both to the DB and the central vault. Skips file if unchanged.
-    """
-    results = ScanResultList( results=[] )
-    for full_path in sr.files:
-        if not full_path.is_file():
-            return None
-
-    try:
-        content = full_path.read_bytes()
-        new_sha256 = hashlib.sha256(content).hexdigest()
-
-        # 1. Check for the latest existing version of this file in the database.
-        latest_version_record = _get_latest_version(full_path, db)
-
-        # 2. If a version exists and its hash matches the current file's hash,
-        #    it means the file is unchanged. We can skip it for efficiency.
-        if (
-            latest_version_record
-            and latest_version_record.sha256 == new_sha256
-        ):
-            return None
-
-        # 3. If the file is new or has been modified, determine its new version number.
-        if latest_version_record:
-            # It's a modified file; increment the latest known version.
-            new_version = latest_version_record.bump_version()
-        else:
-            # It's a brand new file.
-            new_version = 1
-
-        try:
-            content_text = content.decode("utf-8")
-        except UnicodeDecodeError:
-            content_text = content.decode("latin-1", errors="replace")
-
-        stat = full_path.stat()
-        relative_path = full_path.relative_to(source_root).as_posix()
-
-        file_record = FileRecordSchema(
-            id=str(uuid4().hex),
-            version=new_version,
-            source=sr.name,
-            source_root=sr.root_path.as_posix(),
-            source_name=sr.name,
-            host=os.environ.get("COMPUTERNAME", "unknown"),
-            user=os.environ.get("USERNAME", "unknown"),
-            name=full_path.name,
-            stem=full_path.stem,
-            path=full_path.as_posix(),
-            relative_path=relative_path,
-            suffix=full_path.suffix,
-            sha256=new_sha256,
-            md5=hashlib.md5(content).hexdigest(),
-            mode=oct(stat.st_mode),
-            size=stat.st_size,
-            content=content,
-            content_text=content_text,
-            markdown=None,
-            ctime_iso=datetime.fromtimestamp(
-                stat.st_ctime, tz=datetime.timezone.utc
-            ).isoformat(),
-            mtime_iso=datetime.fromtimestamp(
-                stat.st_mtime, tz=datetime.timezone.utc
-            ).isoformat(),
-            created_at=datetime.now(datetime.timezone.utc).isoformat(),
-            line_count=content_text.count("\n") + 1 if content_text else 0,
-            uri=f"file://{full_path.as_posix()}",
-            mimetype=mimetypes.guess_type(full_path.name)[0],
-            version=new_version,
-        )
-
-        # The full markdown format is preserved here.
-        md_content = f"""---
+def _file_record_to_markdown(file_record: FileRecordSchema) -> str:
+    return f"""---
 id: {file_record.id}
 host: {file_record.host}
 user: {file_record.user}
@@ -184,15 +113,124 @@ version: {file_record.version}
 ## File Content
 
 ```{app_config.md_xref.get(file_record.suffix, "")}
-{content_text.replace("\n\n", "\n").replace("\n\r", "\n") if content_text else "<Binary or non-text content>"}
+{file_record.content_text.replace("\n\n", "\n").replace("\n\r", "\n") if file_record.content_text else "<Binary or non-text content>"}
 ```
 """
-        file_record.markdown = md_content
+
+
+def _write_markdown_to_vault(record: FileRecordSchema, config: Config) -> None:
+    markdown_content = _file_record_to_markdown(record)
+    dest_path = (
+        config.md_vault / record.source_type / record.source_name / record.relative_path
+    ).with_suffix(record.suffix + ".md")
+
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    dest_path.write_text(markdown_content, encoding="utf-8")
+
+
+def process_result_files(scan_result: ScanResult, db: Session) -> Optional[dict]:
+    """
+    Processes a single file: creates a metadata record, generates markdown,
+    saves both to the DB and the central vault. Skips file if unchanged.
+    """
+    source_root = scan_result.root_path
+    for f in scan_result.files:
+        full_path = Path(source_root) / f
+        if not full_path.is_file() and not full_path.exists():
+            continue
+    try:
+        content = full_path.read_bytes()
+        new_sha256 = hashlib.sha256(content).hexdigest()
+
+        # 1. Check for the latest existing version of this file in the database.
+        latest_version_record = _get_latest_version(full_path, db)
+
+        # 2. If a version exists and its hash matches the current file's hash,
+        #    it means the file is unchanged. We can skip it for efficiency.
+        if latest_version_record and latest_version_record.sha256 == new_sha256:
+            return None
+
+        # 3. If the file is new or has been modified, determine its new version number.
+        if latest_version_record:
+            # It's a modified file; increment the latest known version.
+            new_version = latest_version_record.bump_version()
+        else:
+            # It's a brand new file.
+            new_version = 1
+
+        try:
+            content_text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            content_text = content.decode("latin-1", errors="replace")
+
+        stat = full_path.stat()
+        relative_path = full_path.relative_to(source_root).as_posix()
+
+        file_record = FileRecordSchema(
+            id=str(uuid4().hex),
+            version=new_version,
+            source_type=scan_result.scan_type,
+            source_root=scan_result.root_path.as_posix(),
+            source_name=scan_result.name,
+            host=os.environ.get("COMPUTERNAME", "unknown"),
+            user=os.environ.get("USERNAME", "unknown"),
+            name=full_path.name,
+            stem=full_path.stem,
+            path=full_path.as_posix(),
+            relative_path=relative_path,
+            suffix=full_path.suffix,
+            sha256=new_sha256,
+            md5=hashlib.md5(content).hexdigest(),
+            mode=oct(stat.st_mode),
+            size=stat.st_size,
+            content=content,
+            content_text=content_text,
+            markdown=None,
+            ctime_iso=datetime.fromtimestamp(
+                stat.st_birthtime, tz=datetime.timezone.utc
+            ).isoformat(),
+            mtime_iso=datetime.fromtimestamp(
+                stat.st_mtime, tz=datetime.timezone.utc
+            ).isoformat(),
+            created_at=datetime.now(datetime.timezone.utc).isoformat(),
+            uri=f"file://{full_path.as_posix()}",
+            mimetype=mimetypes.guess_type(full_path.name)[0],
+        )
+
+        # The full markdown format is preserved here.
+
+        file_record.markdown = _file_record_to_markdown(file_record)
 
         # A new UUID is always generated, so replace=True is not needed.
         # alter=True is good practice as it adds new columns if they exist in the record.
-        models.FileLineRecord(
-        save_markdown_to_vault(file_record, md_content, MD_VAULT)
+        models.FileRecord(
+            id=file_record.id,
+            version=file_record.version,
+            source_type=file_record.source_type,
+            source_root=file_record.source_root,
+            source_name=file_record.source_name,
+            host=file_record.host,
+            user=file_record.user,
+            name=file_record.name,
+            stem=file_record.stem,
+            path=file_record.path,
+            relative_path=file_record.relative_path,
+            suffix=file_record.suffix,
+            sha256=file_record.sha256,
+            md5=file_record.md5,
+            mode=file_record.mode,
+            size=file_record.size,
+            content=file_record.content,
+            content_text=file_record.content_text,
+            markdown=file_record.markdown,
+            ctime_iso=file_record.ctime_iso,
+            mtime_iso=file_record.mtime_iso,
+            created_at=file_record.created_at,
+            uri=file_record.uri,
+            mimetype=file_record.mimetype,
+            line_count=file_record.line_count,
+        )
+        db.add(file_record)
 
         return file_record
     except Exception as e:
@@ -202,3 +240,8 @@ version: {file_record.version}
             )
         typer.secho(f"Error processing {full_path}: {e}", fg=typer.colors.RED)
         return None
+
+
+vault_cli = typer.Typer(
+    name="vault", help="Vault-related commands", no_args_is_help=True
+)

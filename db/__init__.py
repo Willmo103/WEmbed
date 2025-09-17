@@ -76,6 +76,10 @@ def get_session_remote(uri: str = _remote_uri) -> Session | None:
         return None
 
 
+def get_session() -> Session:
+    return get_session_remote() or get_session_local()
+
+
 db_cli = typer.Typer(name="db", no_args_is_help=True, help="Database commands")
 
 

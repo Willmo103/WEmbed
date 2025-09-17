@@ -57,7 +57,7 @@ def _scan_core(
     4. For each root it finds, it creates a 'ScanResult' object containing a list of files.
     5. It returns a list of all the 'ScanResult' objects it created.
     """
-    scan_results: List[ScanResult] = []
+    scan_results: ScanResultList = ScanResultList(results=[])
     base = Path(path).resolve()
     ignore_list = set(app_config.ignore_parts) | {".git"}
 
@@ -112,7 +112,7 @@ def _scan_core(
                     files.add(rel_path)
 
             scan_end = datetime.now(tz=timezone.utc)
-            scan_results.append(
+            scan_results.add_result(
                 ScanResult(
                     id=uuid4().hex,
                     root=root.as_posix(),
@@ -141,7 +141,7 @@ def _scan_core(
                 files.add(item.as_posix())
 
         scan_end = datetime.now(tz=timezone.utc)
-        scan_results.append(
+        scan_results.add_result(
             ScanResult(
                 id=uuid4().hex,
                 root=root.as_posix(),
@@ -159,21 +159,24 @@ def _scan_core(
 
     return scan_results
 
+def _store_scan_results(results: ScanResultList) -> None:
+    session = get_session()
+    for r in results:
 
 # --- CLI Wrapper Functions ---
 
 
-def scan_repos(path: str) -> List[ScanResult]:
+def scan_repos(path: str) -> ScanResultList:
     """Return a list of ScanResult objects for any folder containing a .git."""
     return _scan_core(path, scan_type=ScanTypes.REPO, tracked_only=True)
 
 
-def scan_vaults(path: str) -> List[ScanResult]:
+def scan_vaults(path: str) -> ScanResultList:
     """Return a list of ScanResult objects for any Obsidian vault under path."""
     return _scan_core(path, scan_type=ScanTypes.VAULT)
 
 
-def scan_list(path: str) -> Optional[ScanResult]:
+def scan_list(path: str) -> Optional[ScanResultList]:
     """Return a single ScanResult for a simple directory listing."""
     results = _scan_core(path, scan_type=ScanTypes.LIST)
     return results[0] if results else None
@@ -190,11 +193,8 @@ file_filter_cli = typer.Typer(
 def scan_repos_command(
     path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
-    results = scan_repos(path)
-    # Since multiple repos can be found, we dump the list of results
-    for r in results:
-        typer.echo(r.model_dump_json(indent=2))
-
+    if results := scan_repos(path):
+        models.
 
 @file_filter_cli.command(
     name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True

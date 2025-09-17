@@ -23,6 +23,20 @@ from ._base import Base
 #     host = Column(String, nullable=False)
 
 
+class ScanResultRecord(Base):
+    __tablename__ = "dl_scan_results"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    root_path = Column(String, nullable=False)
+    scan_type = Column(String, nullable=False)
+    files = Column(JSON, nullable=True)
+    scan_start = Column(DateTime(timezone=True), nullable=False)
+    scan_end = Column(DateTime(timezone=True), nullable=True)
+    duration = Column(Integer, nullable=True)
+    options = Column(JSON, nullable=True)
+    user = Column(String, nullable=False)
+    host = Column(String, nullable=False)
+
+
 class VaultRecord(Base):
     __tablename__ = "dl_vault"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -52,21 +66,17 @@ class DocumentIndexRecord(Base):
     last_rendered = Column(DateTime(timezone=True), nullable=True)
 
 
-class ScanResultRecord(Base):
-    __tablename__ = "dl_scan_results"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    root_path = Column(String, nullable=False)
-    scan_type = Column(String, nullable=False)
-    files = Column(JSON, nullable=True)
-    scan_start = Column(DateTime(timezone=True), nullable=False)
-    scan_end = Column(DateTime(timezone=True), nullable=True)
-    duration = Column(Integer, nullable=True)
-    options = Column(JSON, nullable=True)
-    user = Column(String, nullable=False)
-    host = Column(String, nullable=False)
-
-
 class InputRecord(Base):
+    """
+    This Class represents the records that need to be processed from Markdown, via the FileRecord.markdown Content
+    into a DocumentRecord for that File
+
+    Attributes:
+    id: int:: The unique identifier for the input record
+    source_type: str:: The SourceType enum value representing the origin of the input ["Vault", "Repo", "Documentation", etc. ]
+    `see: ingestor-core/enums.SourceTypes`
+    """
+
     __tablename__ = "dl_inputs"
     id = Column(Integer, primary_key=True, autoincrement=True)
     source_type = Column(String, nullable=False)
@@ -99,7 +109,8 @@ class ChunkRecord(Base):
 
 class FileRecord(Base):
     __tablename__ = "dl_files"
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String, primary_key=True)
+    version = Column(Integer, nullable=False, default=1)
     source_type = Column(String, nullable=False)
     source_root = Column(String, nullable=False)
     source_name = Column(String, nullable=False)
