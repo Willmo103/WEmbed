@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import datetime
 import hashlib
 import json
@@ -5,7 +6,7 @@ import mimetypes
 import os
 import shutil
 import traceback
-from typing import Optional
+from typing import Generator, List, Optional
 from uuid import uuid4
 from sqlite_utils import Database
 import typer
@@ -15,6 +16,49 @@ from db import get_session
 from db import models
 from sqlalchemy.orm import Session
 from config import Config, app_config
+
+
+@dataclass
+class RepoFileProcessingPaths:
+    read_path: Path
+    render_path: Path
+    vault_version_exists: bool
+
+@dataclass
+class VaultFileProcessingPaths:
+    read_path: Path
+    render_path: Path
+    vault_version_exists: bool
+
+
+def _get_repo_results() -> list[models.RepoRecord]:
+    session = get_session()
+    return session.query(models.RepoRecord).all()
+
+
+def _get_repo_files() -> Generator[RepoFileProcessingPaths, None, None]:
+    repos = _get_repo_results()
+
+    for repo in repos:
+        root = repo.root_path
+        name = repo.name
+
+        for repo_file in repo.files:
+            yield RepoFileProcessingPaths(
+                read_path=Path(root) / repo_file,
+                render_path=app_config.md_vault / "Repo" / name / repo_file + ".md",
+                vault_version_exists=True if (app_config.md_vault / "Repo" / name / repo_file + ".md").exists() else False,
+            )
+
+
+def _get_vault_files() -> Generator[VaultFileProcessingPaths, None, None]:
+    vault = app_config.md_vault / "Repo"
+    for vault_file in vault.glob("**/*.md"):
+        yield VaultFileProcessingPaths(
+            read_path=vault_file,
+            render_path=vault_file,
+            vault_version_exists=True
+        )
 
 
 def _get_latest_version(record: models.FileRecord, session: Session):
@@ -28,6 +72,24 @@ def _get_latest_version(record: models.FileRecord, session: Session):
         .order_by(models.FileRecord.version.desc())
         .first()
     )
+
+
+def _file_record_exists(path: Path) -> bool:
+    session = get_session()
+    if path.is_file():
+        _user = os.environ.get("USERNAME", "unknown")
+        _host = os.environ.get("COMPUTERNAME", "unknown")
+        _sha256 = hashlib.sha256()
+        with open(path, "rb") as f:
+            while chunk := f.read(8192):
+                _sha256.update(chunk)
+        sha256 = _sha256.hexdigest()
+    return session.query(models.FileRecord).filter(
+        models.FileRecord.path == path,
+        models.FileRecord.sha256 == sha256,
+        models.FileRecord.host == _host,
+        models.FileRecord.user == _user
+    ).count() > 0
 
 
 def save_markdown_to_vault(
@@ -196,6 +258,8 @@ def process_result_files(scan_result: ScanResult, db: Session) -> Optional[dict]
             uri=f"file://{full_path.as_posix()}",
             mimetype=mimetypes.guess_type(full_path.name)[0],
         )
+
+
 
         # The full markdown format is preserved here.
 

@@ -17,7 +17,7 @@ from sqlite_utils import Database
 from config import app_config
 from schemas import FileRecordSchema, ScanResult, ScanResultList
 from enums import ScanTypes
-
+from db import get_session, models
 # An Idiot's Guide to this change:
 # We've created an Enum to represent the different kinds of scans we can do.
 # Using an Enum instead of raw strings like "repo" or "vault" prevents typos
@@ -159,9 +159,54 @@ def _scan_core(
 
     return scan_results
 
+
 def _store_scan_results(results: ScanResultList) -> None:
     session = get_session()
-    for r in results:
+    for r in results.iter_results():
+        scan_result = models.ScanResultRecord(
+            root_path=r.root,
+            scan_type=r.scan_type,
+            files=r.files,
+            scan_start=r.scan_start,
+            scan_end=r.scan_end,
+            duration=r.duration,
+            options=r.options,
+            user=r.user,
+            host=r.host,
+        )
+        session.add(scan_result)
+        session.commit()
+
+
+def _store_repo_records(scan_results: ScanResultList) -> None:
+    session = get_session()
+    for r in scan_results.iter_results():
+        repo: models.RepoRecord = models.RepoRecord(
+            name=r.name,
+            host=r.host,
+            root_path=r.root,
+            files=r.files,
+            file_count=len(r.files) if r.files else 0,
+            indexed_at=datetime.now(timezone.utc),
+        )
+        session.add(repo)
+    session.commit()
+
+
+def _store_vault_records(scan_results: ScanResultList) -> None:
+    session = get_session()
+    for r in scan_results.iter_results():
+        vault: models.VaultRecord = models.VaultRecord(
+            name=r.name,
+            host=r.host,
+            root_path=r.root,
+            files=r.files,
+            file_count=len(r.files) if r.files else 0,
+            indexed_at=datetime.now(timezone.utc),
+        )
+        session.add(vault)
+
+    session.commit()
 
 # --- CLI Wrapper Functions ---
 
@@ -194,7 +239,10 @@ def scan_repos_command(
     path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
     if results := scan_repos(path):
-        models.
+        _store_scan_results(results)
+        _store_repo_records(results)
+    typer.echo(f"Found {len(results.results)} repos.")
+
 
 @file_filter_cli.command(
     name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True
@@ -202,9 +250,10 @@ def scan_repos_command(
 def scan_vaults_command(
     path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
-    results = scan_vaults(path)
-    for r in results:
-        typer.echo(r.model_dump_json(indent=2))
+    if results := scan_vaults(path):
+        _store_scan_results(results)
+        _store_vault_records(results)
+    typer.echo(f"Found {len(results.results)} vaults.")
 
 
 @file_filter_cli.command(
@@ -225,12 +274,7 @@ def list_files_command(
         return
 
     # The formatting logic now lives here, in the presentation layer.
-    db = Database(app_config.db_path)
-    db["scan_results"].insert(result.model_dump(), pk="id", alter=True)
-    typer.secho(
-        f"Stored scan result {result.id} to the database.",
-        fg=typer.colors.GREEN,
-    )
+    _store_scan_results(result)
 
     if json:
         typer.echo(result.model_dump_json(indent=2))
