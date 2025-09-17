@@ -1,3 +1,4 @@
+from pathlib import Path
 from tkinter.filedialog import test
 import psycopg2
 from sqlalchemy import create_engine, Engine, text
@@ -111,11 +112,33 @@ def init_db_command(
 ) -> None:
     success, msg = False, ""
     if remote:
-        success, msg = _init_db(_remote_uri, force)
+        try:
+            typer.echo("Initializing remote Postgres database...")
+            success, msg = _init_db(_remote_uri, force)
+            if not success:
+                typer.echo(f"Error initializing remote Postgres database: {msg}")
+            else:
+                typer.echo(msg or "Remote Postgres database initialized successfully.")
+        except Exception as e:
+            typer.echo(f"Error initializing remote Postgres database: {e}")
     if local:
-        success, msg = _init_db(_local_uri, force)
+        try:
+            typer.echo("Initializing local SQLite database...")
+            success, msg = _init_db(_local_uri, force)
+            if not success:
+                typer.echo(f"Error initializing local SQLite database: {msg}")
+            else:
+                typer.echo(msg or "Local SQLite database initialized successfully.")
+        except Exception as e:
+            typer.echo(f"Error initializing local SQLite database: {e}")
     if test:
-        success, msg = _init_db("sqlite:///test_db.db", force=True)
+        if Path(app_config.app_storage).joinpath("test_db.db").exists():
+            Path(app_config.app_storage).joinpath("test_db.db").unlink()
+        try:
+            typer.echo("Initializing test SQLite database...")
+            success, msg = _init_db("sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")), force=True)
+        except Exception as e:
+            typer.echo(f"Error initializing test SQLite database: {e}")
     if not success:
         print(f"Database initialization failed: {msg}")
     else:

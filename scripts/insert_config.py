@@ -1,34 +1,50 @@
 import json
 from pathlib import Path
 from pydantic import BaseModel
+from sqlalchemy import Column, String, create_engine
 from sqlite_utils import Database
+from db._base import Base
+from config import app_config
+
+
+class IgnoreExtTable(Base):
+    __tablename__ = "_dl_ignore_ext"
+    ext = Column(String, primary_key=True, index=True)
 
 
 class IgnoreExts(BaseModel):
     ext: str
+
+class MdXrefTable(Base):
+    __tablename__ = "_dl_md_xref"
+    k = Column(String, primary_key=True, index=True)
+    v = Column(String, index=True)
 
 
 class MarkdownXref(BaseModel):
     k: str
     v: str
 
+class IgnorePartsTable(Base):
+    __tablename__ = "_dl_ignore_parts"
+    part = Column(String, primary_key=True, index=True)
+
+engine = create_engine("sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")))
+Base.metadata.create_all(bind=engine)
+
 
 class IgnoreParts(BaseModel):
     part: str
 
 
-def insert_configs(data_path: str | None = None):
-    if data_path is None:
-        data_path = Path(__file__).resolve().parent.parent.parent / "data"
-    if not data_path.exists():
-        print(f"Data path {data_path} does not exist. Please create it.")
-        exit(1)
 
-    ignore_ext = data_path / "ignore_ext.json"
-    ignore_parts = data_path / "ignore_parts.json"
-    md_xref = data_path / "md_xref.json"
+def insert_configs():
 
-    db = Database(data_path / "local.db")
+    ignore_ext = app_config.app_storage / "ignore_ext.json"
+    ignore_parts = app_config.app_storage / "ignore_parts.json"
+    md_xref = app_config.app_storage / "md_xref.json"
+
+    db = Database(app_config.db_path)
 
     exts = json.loads(ignore_ext.read_text()) if ignore_ext.exists() else []
     parts = json.loads(ignore_parts.read_text()) if ignore_parts.exists() else []

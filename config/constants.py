@@ -72,7 +72,7 @@ MD_XREF_CONFIG: Path = _md_xref
 
 MAX_TOKENS: int = 2048
 EMBEDDING_LENGTH: int = 768
-EMBED_MODEL_ID: str = "nomic-ai/nomic-embed-text-v1.5"
+EMBED_MODEL_HF_ID: str = "nomic-ai/nomic-embed-text-v1.5"
 EMBED_MODEL_NAME: str = "nomic-embed-text"
 
 OBSIDIAN_EXE: str = (

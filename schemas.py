@@ -137,7 +137,7 @@ class LlmCollectionParams(_BaseModel):
 
 class ScanResult(_BaseModel):
     id: str
-    root: str
+    root_path: str
     name: str
     scan_type: str
     files: list[str] | None

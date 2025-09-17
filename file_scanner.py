@@ -43,19 +43,19 @@ def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
 
 
 def _scan_core(
-    path: str, scan_type: ScanTypes, tracked_only: bool = False
+    path: str,
+    scan_type: ScanTypes,
+    tracked_only: bool = False,
+    **kwargs
 ) -> List[ScanResult]:
     """
-    Core scanner for repos, vaults, and simple file lists.
-    Returns a list of ScanResult objects.
+    Core scanning logic for REPO, VAULT, and LIST scan types.
 
-    An Idiot's Guide to this function:
-    1. It takes a path and a 'scan_type' (REPO, VAULT, or LIST).
-    2. For REPO or VAULT, it looks for "marker" folders (.git, .obsidian) to find roots.
-       It can find MULTIPLE roots (e.g., a folder containing several git repos).
-    3. For LIST, it treats the given path AS the root and finds all files inside.
-    4. For each root it finds, it creates a 'ScanResult' object containing a list of files.
-    5. It returns a list of all the 'ScanResult' objects it created.
+    Args:
+        path: The root path to scan.
+        scan_type: The type of scan to perform (REPO, VAULT, or LIST).
+        tracked_only: Whether to include only tracked files (for REPO scans).
+            e.g. the results of `git -C <path> ls-files`
     """
     scan_results: ScanResultList = ScanResultList(results=[])
     base = Path(path).resolve()
@@ -115,7 +115,7 @@ def _scan_core(
             scan_results.add_result(
                 ScanResult(
                     id=uuid4().hex,
-                    root=root.as_posix(),
+                    root_path=root.as_posix(),
                     name=name,
                     scan_type=ScanTypes.REPO.value,
                     files=sorted(list(files)),
@@ -144,7 +144,7 @@ def _scan_core(
         scan_results.add_result(
             ScanResult(
                 id=uuid4().hex,
-                root=root.as_posix(),
+                root_path=root.as_posix(),
                 name=root.name,
                 scan_type=ScanTypes.LIST.value,
                 files=sorted(list(files)),
@@ -157,14 +157,18 @@ def _scan_core(
             )
         )
 
-    return scan_results
+    if scan_results.files is not None:
+
+
+
+        return scan_results
 
 
 def _store_scan_results(results: ScanResultList) -> None:
     session = get_session()
     for r in results.iter_results():
         scan_result = models.ScanResultRecord(
-            root_path=r.root,
+            root_path=r.root_path,
             scan_type=r.scan_type,
             files=r.files,
             scan_start=r.scan_start,
@@ -184,7 +188,7 @@ def _store_repo_records(scan_results: ScanResultList) -> None:
         repo: models.RepoRecord = models.RepoRecord(
             name=r.name,
             host=r.host,
-            root_path=r.root,
+            root_path=r.root_path,
             files=r.files,
             file_count=len(r.files) if r.files else 0,
             indexed_at=datetime.now(timezone.utc),
@@ -199,7 +203,7 @@ def _store_vault_records(scan_results: ScanResultList) -> None:
         vault: models.VaultRecord = models.VaultRecord(
             name=r.name,
             host=r.host,
-            root_path=r.root,
+            root_path=r.root_path,
             files=r.files,
             file_count=len(r.files) if r.files else 0,
             indexed_at=datetime.now(timezone.utc),

@@ -28,6 +28,7 @@ class ScanResultRecord(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     root_path = Column(String, nullable=False)
     scan_type = Column(String, nullable=False)
+    scan_name = Column(String, nullable=True)
     files = Column(JSON, nullable=True)
     scan_start = Column(DateTime(timezone=True), nullable=False)
     scan_end = Column(DateTime(timezone=True), nullable=True)
