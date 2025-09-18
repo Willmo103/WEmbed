@@ -1,6 +1,5 @@
 from typing import Set
 
-
 IGNORE_EXTENSIONS: Set[str] = {
     ".pyc",
     ".pyo",

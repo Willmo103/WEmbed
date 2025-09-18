@@ -1,25 +1,23 @@
-# file_scanner.py
-
-import hashlib
-import mimetypes
 import os
 import subprocess
-import traceback
 from datetime import datetime, timezone
-from enum import Enum
 from pathlib import Path
-from typing import Iterable, List, Optional, Set
+from typing import Iterable, Set
 from uuid import uuid4
 
 
 import typer
-from sqlite_utils import Database
-
 from config import app_config
-from schemas import FileRecordSchema, ScanResult, ScanResultList
+from db import (
+    RepoRecordCRUD,
+    RepoRecordSchema,
+    ScanResultCRUD,
+    ScanResultSchema,
+    VaultRecordCRUD,
+    VaultRecordSchema,
+    get_session,
+)
 from enums import ScanTypes
-from db import get_session, models
-
 
 
 def _iter_files(base: Path) -> Iterable[Path]:
@@ -34,23 +32,15 @@ def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
     return any(seg in parts for seg in item.parts)
 
 
-def _scan_core(
-    path: str,
-    scan_type: ScanTypes,
-    tracked_only: bool = False,
-    **kwargs
-) -> List[ScanResult]:
+def _scan_directory(
+    path: str, scan_type: ScanTypes, tracked_only: bool = False
+) -> list[ScanResultSchema]:
 
     """
     Core scanning logic for REPO, VAULT, and LIST scan types.
-
-    Args:
-        path: The root path to scan.
-        scan_type: The type of scan to perform (REPO, VAULT, or LIST).
-        tracked_only: Whether to include only tracked files (for REPO scans).
-            e.g. the results of `git -C <path> ls-files`
+    Returns a list of ScanResultSchema objects.
     """
-    scan_results: ScanResultList = ScanResultList(results=[])
+    results = []
     base = Path(path).resolve()
 
     ignore_list = set(app_config.ignore_parts) | {".git"}
@@ -65,7 +55,7 @@ def _scan_core(
 
             root = marker.parent.resolve()
             name = root.name
-            files: Set[str] = set()
+            files = set()
             scan_start = datetime.now(tz=timezone.utc)
 
             # Git-tracked files for REPO scan
@@ -106,12 +96,12 @@ def _scan_core(
                     files.add(rel_path)
 
             scan_end = datetime.now(tz=timezone.utc)
-            scan_results.add_result(
-                ScanResult(
+            results.append(
+                ScanResultSchema(
                     id=uuid4().hex,
                     root_path=root.as_posix(),
                     name=name,
-                    scan_type=ScanTypes.REPO.value,
+                    scan_type=scan_type.value,
                     files=sorted(list(files)),
                     scan_start=scan_start,
                     scan_end=scan_end,
@@ -125,6 +115,7 @@ def _scan_core(
                     host=os.environ.get("COMPUTERNAME", "unknown"),
                 )
             )
+
     # --- Logic for LIST scan (non-marker-based) ---
     elif scan_type == ScanTypes.LIST:
         root = base
@@ -132,11 +123,11 @@ def _scan_core(
         scan_start = datetime.now(tz=timezone.utc)
         for item in _iter_files(root):
             if not _should_skip(item, ignore_list):
-                files.add(item.as_posix())
+                files.add(item.relative_to(root).as_posix())
 
         scan_end = datetime.now(tz=timezone.utc)
-        scan_results.add_result(
-            ScanResult(
+        results.append(
+            ScanResultSchema(
                 id=uuid4().hex,
                 root_path=root.as_posix(),
                 name=root.name,
@@ -151,110 +142,116 @@ def _scan_core(
             )
         )
 
-    if scan_results.files is not None:
+    return results
 
 
-
-        return scan_results
-
-
-def _store_scan_results(results: ScanResultList) -> None:
+def store_scan_results(scan_results: list[ScanResultSchema]) -> None:
+    """Store scan results in the database using CRUD operations."""
     session = get_session()
-    for r in results.iter_results():
-        scan_result = models.ScanResultRecord(
-            root_path=r.root_path,
-            scan_type=r.scan_type,
-            files=r.files,
-            scan_start=r.scan_start,
-            scan_end=r.scan_end,
-            duration=r.duration,
-            options=r.options,
-            user=r.user,
-            host=r.host,
-        )
-        session.add(scan_result)
-        session.commit()
+    try:
+        for result in scan_results:
+            ScanResultCRUD.create(session, result)
+        typer.echo(f"Stored {len(scan_results)} scan results.")
+    except Exception as e:
+        typer.secho(f"Error storing scan results: {e}", fg=typer.colors.RED)
+        session.rollback()
+    finally:
+        session.close()
 
 
-def _store_repo_records(scan_results: ScanResultList) -> None:
+def convert_scan_results_to_records(
+    scan_results: list[ScanResultSchema],
+) -> None:
+    """Convert scan results to Vault/Repo records based on scan type."""
     session = get_session()
-    for r in scan_results.iter_results():
-        repo: models.RepoRecord = models.RepoRecord(
-            name=r.name,
-            host=r.host,
-            root_path=r.root_path,
-            files=r.files,
-            file_count=len(r.files) if r.files else 0,
-            indexed_at=datetime.now(timezone.utc),
-        )
-        session.add(repo)
-    session.commit()
+    try:
+        for result in scan_results:
+            if result.scan_type == ScanTypes.VAULT.value:
+                vault_record = VaultRecordSchema(
+                    name=result.name,
+                    host=result.host,
+                    root_path=result.root_path,
+                    files=result.files,
+                    file_count=len(result.files) if result.files else 0,
+                    indexed_at=datetime.now(timezone.utc),
+                )
+                VaultRecordCRUD.create(session, vault_record)
 
+            elif result.scan_type == ScanTypes.REPO.value:
+                repo_record = RepoRecordSchema(
+                    name=result.name,
+                    host=result.host,
+                    root_path=result.root_path,
+                    files=result.files,
+                    file_count=len(result.files) if result.files else 0,
+                    indexed_at=datetime.now(timezone.utc),
+                )
+                RepoRecordCRUD.create(session, repo_record)
 
-def _store_vault_records(scan_results: ScanResultList) -> None:
-    session = get_session()
-    for r in scan_results.iter_results():
-        vault: models.VaultRecord = models.VaultRecord(
-            name=r.name,
-            host=r.host,
-            root_path=r.root_path,
-            files=r.files,
-            file_count=len(r.files) if r.files else 0,
-            indexed_at=datetime.now(timezone.utc),
-        )
-        session.add(vault)
+        typer.echo(f"Converted {len(scan_results)} scan results to records.")
+    except Exception as e:
+        typer.secho(f"Error converting scan results: {e}", fg=typer.colors.RED)
+        session.rollback()
+    finally:
+        session.close()
 
-    session.commit()
 
 # --- CLI Wrapper Functions ---
 
 
-def scan_repos(path: str) -> ScanResultList:
+def scan_repos(path: str) -> list[ScanResultSchema]:
     """Return a list of ScanResult objects for any folder containing a .git."""
-    return _scan_core(path, scan_type=ScanTypes.REPO, tracked_only=True)
+    return _scan_directory(path, scan_type=ScanTypes.REPO, tracked_only=True)
 
 
-def scan_vaults(path: str) -> ScanResultList:
+def scan_vaults(path: str) -> list[ScanResultSchema]:
     """Return a list of ScanResult objects for any Obsidian vault under path."""
-    return _scan_core(path, scan_type=ScanTypes.VAULT)
+    return _scan_directory(path, scan_type=ScanTypes.VAULT)
 
 
-def scan_list(path: str) -> Optional[ScanResultList]:
+def scan_list(path: str) -> list[ScanResultSchema]:
     """Return a single ScanResult for a simple directory listing."""
-    results = _scan_core(path, scan_type=ScanTypes.LIST)
-    return results[0] if results else None
+    return _scan_directory(path, scan_type=ScanTypes.LIST)
 
 
 # --- Typer CLI Application ---
 
-file_filter_cli = typer.Typer(
-    name="index", no_args_is_help=True, help="File Indexing Commands"
+file_scanner_cli = typer.Typer(
+    name="scan", no_args_is_help=True, help="File Scanning Commands"
 )
 
 
-@file_filter_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
+@file_scanner_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
 def scan_repos_command(
     path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
-    if results := scan_repos(path):
-        _store_scan_results(results)
-        _store_repo_records(results)
-    typer.echo(f"Found {len(results.results)} repos.")
+    """Scan for repositories and store the results."""
+    results = scan_repos(path)
+    if results:
+        store_scan_results(results)
+        convert_scan_results_to_records(results)
+        typer.echo(f"Found and processed {len(results)} repos.")
+    else:
+        typer.secho("No repositories found.", fg=typer.colors.YELLOW)
 
 
-@file_filter_cli.command(
+@file_scanner_cli.command(
     name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True
 )
 def scan_vaults_command(
     path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
 ):
-    if results := scan_vaults(path):
-        _store_scan_results(results)
-        _store_vault_records(results)
-    typer.echo(f"Found {len(results.results)} vaults.")
+    """Scan for Obsidian vaults and store the results."""
+    results = scan_vaults(path)
+    if results:
+        store_scan_results(results)
+        convert_scan_results_to_records(results)
+        typer.echo(f"Found and processed {len(results)} vaults.")
+    else:
+        typer.secho("No vaults found.", fg=typer.colors.YELLOW)
 
 
-@file_filter_cli.command(
+@file_scanner_cli.command(
     name="list", help="List all files in a directory", no_args_is_help=True
 )
 def list_files_command(
@@ -266,14 +263,17 @@ def list_files_command(
         False, "--nl", "-n", help="Output as newline-delimited list."
     ),
 ):
-    result = scan_list(path)
-    if not result:
+    """List files in a directory and optionally store results."""
+    results = scan_list(path)
+    if not results:
         typer.secho("No files found.", fg=typer.colors.YELLOW)
         return
 
-    # The formatting logic now lives here, in the presentation layer.
-    _store_scan_results(result)
+    # Store results
+    store_scan_results(results)
 
+    # Format output
+    result = results[0]  # LIST scan returns only one result
     if json:
         typer.echo(result.model_dump_json(indent=2))
     elif nl:
@@ -284,4 +284,4 @@ def list_files_command(
 
 
 if __name__ == "__main__":
-    file_filter_cli()
+    file_scanner_cli()

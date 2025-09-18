@@ -1,33 +1,33 @@
-from sqlalchemy import create_engine, Engine, text
+import os
 from pathlib import Path
-import psycopg2
 
-from pydantic import computed_field
-from sqlite_utils import Database
 import typer
+from pydantic import computed_field
+from pydantic_settings import BaseSettings
+from sqlalchemy import Engine, create_engine
+from sqlite_utils import Database
+
 from .constants import (
-    MD_VAULT,
-    STORAGE,
     EMBED_MODEL_HF_ID,
     EMBED_MODEL_NAME,
     EMBEDDING_LENGTH,
-    MAX_TOKENS,
-    LOCAL_DB_URI,
     HOST,
-    USER,
+    LOCAL_DB_URI,
+    MAX_TOKENS,
+    MD_VAULT,
     POSTGRES_URI,
-    local_db_path,
-    VAULT_FOLDER,
+    STORAGE,
+    USER,
     VAULT_EXTENSIONS,
-    _config_path,
-    _headers_path,
+    VAULT_FOLDER,
+    local_db_path,
 )
+from .headers import HEADERS
 from .ignore_ext import IGNORE_EXTENSIONS
 from .ignore_parts import IGNORE_PARTS
 from .md_xref import MD_XREF
-from .headers import HEADERS
 
-from pydantic_settings import BaseSettings
+os.environ["OLLAMA_HOST"] = "http://192.168.0.182:11434"
 
 
 class Config(BaseSettings):

@@ -2,9 +2,11 @@ from datetime import datetime, timezone
 from typing import List, Optional, List
 
 import llm
-from pydantic import BaseModel, Json, Field, computed_field, Field
-from sqlite_utils import Database
 from docling_core.transforms.chunker.base import BaseChunk
+from docling_core.types.doc.document import DoclingDocument
+from pydantic import BaseModel, Field, Json, computed_field
+from sqlalchemy import Table
+from sqlite_utils import Database
 
 from file_scanner import ListFileOpts
 
@@ -13,94 +15,13 @@ class _BaseModel(BaseModel):
     class Config:
         from_attributes: bool = True
 
+        arbitrary_types_allowed: bool = True
 
-class FileLineSchema(_BaseModel):
-    file_id: str
-    file_repo_name: str
-    file_repo_type: str
-    file_version: str
-    line_number: int
-    line_text: str
-    embedding: Optional[List[float]] = None
-    embedding: Optional[List[float]] = None
-
-    @computed_field
-    @property
-    @property
-    def id(self) -> str:
-        return f"{self.file_id}:{self.line_number}"
-
-
-class FileRecordSchema(_BaseModel):
-    id: str
-    version: int
-    source_type: str
-    source_root: str
-    source_name: str
-    host: Optional[str] = None
-    user: Optional[str] = None
-    name: Optional[str] = None
-    stem: Optional[str] = None
-    path: Optional[str] = None
-    relative_path: Optional[str] = None
-    suffix: Optional[str] = None
-    sha256: Optional[str] = None
-    md5: Optional[str] = None
-    mode: Optional[str] = None
-    size: Optional[int] = None
-    content: Optional[bytes] = None
-    content_text: Optional[str] = None
-    ctime_iso: Optional[str] = None
-    mtime_iso: Optional[str] = None
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc)
-    )
-    line_count: Optional[int] = None
-    uri: Optional[str] = None
-    mimetype: Optional[str] = None
-    markdown: Optional[str] = None
-
-
-    def bump_version(self):
-        if self.version is not None:
-            self.version += 1
-
-
-class ChunkRecordModel(_BaseModel):
-    id: int
-    document_id: int
-    text_chunk: str  # Renamed from 'chunk' to avoid ambiguity
-    idx: int
-    embedding: List[float]
-    created_at: datetime
-
-
-class DocumentRecordModel(_BaseModel):
-    id: int
-    source: str
-    source_type: str
-    source_ref: Optional[int] = None
-    dl_doc: Optional[str] = None
-    markdown: Optional[str] = None
-    html: Optional[str] = None
-    text: Optional[str] = None
-    doctags: Optional[str] = None
-    chunks_json: Optional[str] = None
-    source_ref: Optional[int] = None
-    dl_doc: Optional[str] = None
-    markdown: Optional[str] = None
-    html: Optional[str] = None
-    text: Optional[str] = None
-    doctags: Optional[str] = None
-    chunks_json: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
 
 class ChunkModel(_BaseModel):
     index: int
-    chunk: BaseChunk
+    chunk: Json[BaseChunk]
     embedding: list[float]
 
 

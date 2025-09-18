@@ -1,12 +1,38 @@
 from pathlib import Path
-from tkinter.filedialog import test
-import psycopg2
-from sqlalchemy import create_engine, Engine, text
-from sqlalchemy.orm import Session, sessionmaker
-from ._base import Base
-from config import app_config
-import typer
 
+import psycopg2
+import typer
+from config import app_config
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
+
+from ._base import Base
+from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
+from .document_index import DocumentIndexCRUD, DocumentIndexRecord, DocumentIndexSchema
+from .document_record import (
+    ChunkList,
+    ChunkModel,
+    DocumentOut,
+    DocumentRecord,
+    DocumentRecordCRUD,
+    DocumentRecordSchema,
+    StringContentOut,
+)
+from .file_line import FileLineCRUD, FileLineRecord
+from .file_record import FileLineSchema, FileRecord, FileRecordCRUD, FileRecordSchema
+from .input_record import InputOut, InputRecord, InputRecordCRUD, InputRecordSchema
+from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
+
+# Import all record models and their CRUD operations
+from .scan_result import (
+    ScanResultCRUD,
+    ScanResultList,
+    ScanResultRecord,
+    ScanResultSchema,
+)
+from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
+
+# Database initialization and connection management
 DB_INIT = False
 _local_uri = app_config.local_db_uri
 _remote_uri = app_config.remote_db_uri
@@ -54,9 +80,8 @@ def _init_db(uri: str, force: bool = False) -> tuple[bool, str]:
 def create_models(uri: str) -> tuple[bool, str]:
     global DB_INIT
     try:
-        from . import models
-
-        models.Base.metadata.create_all(_get_engine(uri))
+        # Create all tables using the Base metadata
+        Base.metadata.create_all(_get_engine(uri))
         DB_INIT = True
         return True, "Database models created successfully."
     except Exception as e:
@@ -81,6 +106,7 @@ def get_session() -> Session:
     return get_session_remote() or get_session_local()
 
 
+# CLI Commands
 db_cli = typer.Typer(name="db", no_args_is_help=True, help="Database commands")
 
 
@@ -100,7 +126,7 @@ def init_db_command(
     local: bool = typer.Option(
         False, "--local", "-l", help="Initialize local SQLite database"
     ),
-    test_db: bool = typer.Option(
+    test: bool = typer.Option(
         False,
         "--test",
         "-t",
@@ -136,10 +162,68 @@ def init_db_command(
             Path(app_config.app_storage).joinpath("test_db.db").unlink()
         try:
             typer.echo("Initializing test SQLite database...")
-            success, msg = _init_db("sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")), force=True)
+            success, msg = _init_db(
+                "sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")),
+                force=True,
+            )
+            if not success:
+                typer.echo(f"Error initializing test SQLite database: {msg}")
+            else:
+                typer.echo(msg or "Test SQLite database initialized successfully.")
         except Exception as e:
             typer.echo(f"Error initializing test SQLite database: {e}")
-    if not success:
-        print(f"Database initialization failed: {msg}")
-    else:
-        print(msg or "Database initialized successfully.")
+
+
+# Export all models, schemas, and CRUD operations for easy importing
+__all__ = [
+    # Database management functions
+    "test_db_connection",
+    "create_models",
+    "get_session",
+    "get_session_local",
+    "get_session_remote",
+    "db_cli",
+    # Scan Result
+    "ScanResultRecord",
+    "ScanResultSchema",
+    "ScanResultList",
+    "ScanResultCRUD",
+    # Vault Record
+    "VaultRecord",
+    "VaultRecordSchema",
+    "VaultRecordCRUD",
+    # Repo Record
+    "RepoRecord",
+    "RepoRecordSchema",
+    "RepoRecordCRUD",
+    # Document Index
+    "DocumentIndexRecord",
+    "DocumentIndexSchema",
+    "DocumentIndexCRUD",
+    # Input Record
+    "InputRecord",
+    "InputRecordSchema",
+    "InputOut",
+    "InputRecordCRUD",
+    # Chunk Record
+    "ChunkRecord",
+    "ChunkRecordSchema",
+    "ChunkRecordCRUD",
+    # File Record
+    "FileRecord",
+    "FileRecordSchema",
+    "FileLineSchema",
+    "FileRecordCRUD",
+    # Document Record
+    "DocumentRecord",
+    "DocumentRecordSchema",
+    "ChunkModel",
+    "ChunkList",
+    "DocumentOut",
+    "StringContentOut",
+    "DocumentRecordCRUD",
+    # File Line
+    "FileLineRecord",
+    "FileLineSchema",
+    "FileLineCRUD",
+]

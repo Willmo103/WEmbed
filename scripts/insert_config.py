@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+
+from config import app_config
+from db._base import Base
 from pydantic import BaseModel
 from sqlalchemy import Column, String, create_engine
 from sqlite_utils import Database
-from db._base import Base
-from config import app_config
 
 
 class IgnoreExtTable(Base):
@@ -14,6 +15,7 @@ class IgnoreExtTable(Base):
 
 class IgnoreExts(BaseModel):
     ext: str
+
 
 class MdXrefTable(Base):
     __tablename__ = "_dl_md_xref"
@@ -25,17 +27,20 @@ class MarkdownXref(BaseModel):
     k: str
     v: str
 
+
 class IgnorePartsTable(Base):
     __tablename__ = "_dl_ignore_parts"
     part = Column(String, primary_key=True, index=True)
 
-engine = create_engine("sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db")))
+
+engine = create_engine(
+    "sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db"))
+)
 Base.metadata.create_all(bind=engine)
 
 
 class IgnoreParts(BaseModel):
     part: str
-
 
 
 def insert_configs():
