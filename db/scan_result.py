@@ -15,7 +15,7 @@ class ScanResultRecord(Base):
     root_path: Mapped[str] = mapped_column(String, nullable=False, index=True)
     scan_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     scan_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    files: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True, index=True)
+    files: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
     scan_start: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
