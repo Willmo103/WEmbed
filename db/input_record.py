@@ -94,7 +94,12 @@ class InputRecordCRUD:
 
     @staticmethod
     def get_unprocessed(db: Session) -> List[InputRecord]:
-        return db.query(InputRecord).filter(InputRecord.status == "pending").all()
+        return (
+            db.query(InputRecord)
+            .filter(InputRecord.status == "pending")
+            .filter(InputRecord.processed == 0)
+            .all()
+        )
 
     @staticmethod
     def get_by_file_id(db: Session, file_id: str) -> Optional[InputRecord]:
@@ -130,6 +135,7 @@ class InputRecordCRUD:
         if db_record:
             db_record.processed = True
             db_record.processed_at = datetime.now(timezone.utc)
+            db_record.status = "processed"
             if output_doc_id:
                 db_record.output_doc_id = output_doc_id
             db.commit()
@@ -143,6 +149,7 @@ class InputRecordCRUD:
             existing_errors = db_record.errors.split("\n") if db_record.errors else []
             existing_errors.append(error)
             db_record.errors = "\n".join(existing_errors)
+            db_record.status = "error"
             db.commit()
             db.refresh(db_record)
         return db_record

@@ -25,6 +25,8 @@ from db import (
 )
 from config import app_config
 
+MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
+
 
 class DlDocProcessor:
     """Document processor for converting files to DoclingDocuments and creating embeddings."""
@@ -236,6 +238,13 @@ class DlDocProcessor:
                 )
                 return None
 
+            if file_record.size and file_record.size > MAX_PROCESSING_SIZE:
+                typer.secho(
+                    f"File {file_record_id} exceeds maximum processing size",
+                    fg=typer.colors.YELLOW,
+                )
+                return None
+
             # Create a temporary markdown file
             temp_md_path = Path(f"/tmp/temp_{file_record_id}.md")
             temp_md_path.parent.mkdir(parents=True, exist_ok=True)
@@ -250,7 +259,8 @@ class DlDocProcessor:
 
                 # Convert the markdown file
                 result = self.convert_source(str(temp_md_path), input_record_id)
-
+                if result:
+                    InputRecordCRUD.mark_processed(session, input_record_db.id)
                 return result
 
             finally:

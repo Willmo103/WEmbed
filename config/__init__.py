@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import create_engine, Engine
 from pathlib import Path
 
@@ -25,6 +26,9 @@ from .md_xref import MD_XREF
 from .headers import HEADERS
 
 from pydantic_settings import BaseSettings
+
+
+os.environ["OLLAMA_HOST"] = "http://192.168.0.182:11434"
 
 
 class Config(BaseSettings):
