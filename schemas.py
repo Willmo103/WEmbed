@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional, Set
+from typing import List, Optional, List
 
 import llm
 from docling_core.transforms.chunker.base import BaseChunk
@@ -8,11 +8,15 @@ from pydantic import BaseModel, Field, Json, computed_field
 from sqlalchemy import Table
 from sqlite_utils import Database
 
+from file_scanner import ListFileOpts
+
 
 class _BaseModel(BaseModel):
     class Config:
         from_attributes: bool = True
+
         arbitrary_types_allowed: bool = True
+
 
 
 class ChunkModel(_BaseModel):
@@ -51,15 +55,11 @@ class StringContentOut(_BaseModel):
 class LlmCollectionParams(_BaseModel):
     name: str
     db: Database | None = None
-    model: llm.models.EmbeddingModel | None = None
+    model: llm.models.EmbeddingModel | None = Field(
+        None,
+    )
     model_id: str | None = None
     create: bool = True
-
-    model_config = {
-        "from_attributes": True,
-        "arbitrary_types_allowed": True,
-        "json_encoders": {},
-    }
 
 
 class ScanResult(_BaseModel):
@@ -71,7 +71,7 @@ class ScanResult(_BaseModel):
     scan_start: datetime
     scan_end: datetime
     duration: float
-    options: dict
+    options: Json[ListFileOpts]
     user: str
     host: str
 
