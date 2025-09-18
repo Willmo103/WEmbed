@@ -6,18 +6,17 @@ from typing import Iterable, Set
 from uuid import uuid4
 
 import typer
-
 from config import app_config
-from enums import ScanTypes
 from db import (
-    get_session,
-    ScanResultSchema,
-    ScanResultCRUD,
-    VaultRecordSchema,
-    VaultRecordCRUD,
-    RepoRecordSchema,
     RepoRecordCRUD,
+    RepoRecordSchema,
+    ScanResultCRUD,
+    ScanResultSchema,
+    VaultRecordCRUD,
+    VaultRecordSchema,
+    get_session,
 )
+from enums import ScanTypes
 
 
 def _iter_files(base: Path) -> Iterable[Path]:

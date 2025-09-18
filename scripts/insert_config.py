@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+
+from config import app_config
+from db._base import Base
 from pydantic import BaseModel
 from sqlalchemy import Column, String, create_engine
 from sqlite_utils import Database
-from db._base import Base
-from config import app_config
 
 
 class IgnoreExtTable(Base):

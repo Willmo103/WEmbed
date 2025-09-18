@@ -1,6 +1,5 @@
 from typing import Set
 
-
 IGNORE_PARTS: Set[str] = {
     ".hg",
     ".svn",

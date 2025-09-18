@@ -1,9 +1,9 @@
-from config import config_cli as conf
-from file_scanner import file_scanner_cli as files
-from db import db_cli as db
-from file_processor import file_processor_cli as proc
-from dl_doc_processor import doc_processor_cli as docproc
 import typer
+from config import config_cli as conf
+from db import db_cli as db
+from dl_doc_processor import doc_processor_cli as docproc
+from file_processor import file_processor_cli as proc
+from file_scanner import file_scanner_cli as files
 
 main_cli = typer.Typer(name="jstr", no_args_is_help=True)
 main_cli.add_typer(conf, name="conf", help="Configuration commands")

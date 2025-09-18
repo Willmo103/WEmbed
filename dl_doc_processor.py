@@ -1,29 +1,26 @@
 # dl_doc_processor.py
 
 from datetime import datetime, timezone
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
+import llm
+import typer
+from config import app_config
+from db import (
+    ChunkRecordCRUD,
+    ChunkRecordSchema,
+    DocumentRecordCRUD,
+    DocumentRecordSchema,
+    FileRecordCRUD,
+    InputRecordCRUD,
+    get_session,
+)
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.base import BaseChunk
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
-from docling_core.transforms.chunker.tokenizer.huggingface import (
-    HuggingFaceTokenizer,
-)
+from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from docling_core.types.doc.document import DoclingDocument
-import llm
-import typer
-
-from db import (
-    get_session,
-    InputRecordCRUD,
-    DocumentRecordSchema,
-    DocumentRecordCRUD,
-    ChunkRecordSchema,
-    ChunkRecordCRUD,
-    FileRecordCRUD,
-)
-from config import app_config
 
 MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 

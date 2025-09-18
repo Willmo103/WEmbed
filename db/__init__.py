@@ -1,49 +1,36 @@
 from pathlib import Path
+
 import psycopg2
-from sqlalchemy import create_engine, Engine, text
-from sqlalchemy.orm import Session, sessionmaker
-from ._base import Base
-from config import app_config
 import typer
+from config import app_config
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
+
+from ._base import Base
+from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
+from .document_index import DocumentIndexCRUD, DocumentIndexRecord, DocumentIndexSchema
+from .document_record import (
+    ChunkList,
+    ChunkModel,
+    DocumentOut,
+    DocumentRecord,
+    DocumentRecordCRUD,
+    DocumentRecordSchema,
+    StringContentOut,
+)
+from .file_line import FileLineCRUD, FileLineRecord
+from .file_record import FileLineSchema, FileRecord, FileRecordCRUD, FileRecordSchema
+from .input_record import InputOut, InputRecord, InputRecordCRUD, InputRecordSchema
+from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
 
 # Import all record models and their CRUD operations
 from .scan_result import (
+    ScanResultCRUD,
+    ScanResultList,
     ScanResultRecord,
     ScanResultSchema,
-    ScanResultList,
-    ScanResultCRUD,
 )
-from .vault_record import VaultRecord, VaultRecordSchema, VaultRecordCRUD
-from .repo_record import RepoRecord, RepoRecordSchema, RepoRecordCRUD
-from .document_index import (
-    DocumentIndexRecord,
-    DocumentIndexSchema,
-    DocumentIndexCRUD,
-)
-from .input_record import (
-    InputRecord,
-    InputRecordSchema,
-    InputOut,
-    InputRecordCRUD,
-)
-from .chunk_record import ChunkRecord, ChunkRecordSchema, ChunkRecordCRUD
-from .file_record import (
-    FileRecord,
-    FileRecordSchema,
-    FileLineSchema,
-    FileRecordCRUD,
-)
-from .document_record import (
-    DocumentRecord,
-    DocumentRecordSchema,
-    ChunkModel,
-    ChunkList,
-    DocumentOut,
-    StringContentOut,
-    DocumentRecordCRUD,
-)
-from .file_line import FileLineRecord, FileLineCRUD
-
+from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
 
 # Database initialization and connection management
 DB_INIT = False

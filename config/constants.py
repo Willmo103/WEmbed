@@ -1,10 +1,7 @@
-import json
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlite_utils import Database
-
 
 IS_INITIALIZED = False
 

@@ -2,9 +2,11 @@
 
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlalchemy import JSON, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, Session
+
 from pydantic import BaseModel
+from sqlalchemy import JSON, DateTime, Integer, String
+from sqlalchemy.orm import Mapped, Session, mapped_column
+
 from ._base import Base
 
 

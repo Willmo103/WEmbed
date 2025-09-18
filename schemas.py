@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 from typing import List, Optional, Set
 
 import llm
+from docling_core.transforms.chunker.base import BaseChunk
+from docling_core.types.doc.document import DoclingDocument
 from pydantic import BaseModel, Field, Json, computed_field
 from sqlalchemy import Table
 from sqlite_utils import Database
-from docling_core.types.doc.document import DoclingDocument
-from docling_core.transforms.chunker.base import BaseChunk
 
 
 class _BaseModel(BaseModel):
