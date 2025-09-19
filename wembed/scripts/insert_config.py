@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from config import app_config
-from db._base import Base
+from wembed.config import app_config
+from wembed.db._base import Base
 from pydantic import BaseModel
 from sqlalchemy import Column, String, create_engine
 from sqlite_utils import Database
