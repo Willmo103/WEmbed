@@ -1,2 +1,1 @@
-import config
-import cli
+from .config import *  # noqa:F403

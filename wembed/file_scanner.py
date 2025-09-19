@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Iterable, Set
 from uuid import uuid4
 
-
 import typer
 from config import app_config
 from db import (

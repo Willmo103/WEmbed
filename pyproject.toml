@@ -14,6 +14,7 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.43",
     "sqlite-utils>=3.38",
+    "typer>=0.9.0",
 ]
 [project.optional-dependencies]
 test = [
@@ -29,6 +30,7 @@ dev = [
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
 ]
+
 [project.urls]
 Homepage = "https://github.com/Willmo103/WEmbed"
 Repository = "https://github.com/Willmo103/WEmbed"
@@ -36,6 +38,7 @@ Issues = "https://github.com/Willmo103/WEmbed/issues"
 
 [project.scripts]
 cli = "wembed.cli:main"
+config = "wembed:config_cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -45,7 +48,7 @@ python_functions = "test_*"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=your_package",
+    "--cov=wembed",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
@@ -59,10 +62,11 @@ markers = [
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
+    "ignore::ResourceWarning",
 ]
 
 [tool.coverage.run]
-source = ["your_package"]
+source = ["wembed"]
 omit = [
     "*/tests/*",
     "*/test_*",
@@ -85,7 +89,7 @@ exclude_lines = [
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py313']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -105,10 +109,10 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["your_package"]
+known_first_party = ["wembed"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -126,6 +130,9 @@ strict_equality = true
 module = [
     "sqlite_utils",
     "dotenv",
+    "docling",
+    "llm",
+    "psycopg2",
 ]
 ignore_missing_imports = true
 

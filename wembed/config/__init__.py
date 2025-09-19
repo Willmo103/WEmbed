@@ -20,7 +20,7 @@ _root_dir = Path(__file__).resolve().parent.parent
 _app_data_dir = _root_dir.parent / "data"
 
 # Get storage path from environment or use default
-_storage = os.getenv("INGESTOR_STORAGE", _app_data_dir)
+_storage = os.getenv("APP_STORAGE", _app_data_dir)
 _app_data_dir = Path(_storage).resolve() if _storage else Path(_app_data_dir).resolve()
 
 # .env file path resolution
@@ -32,11 +32,6 @@ load_dotenv(_app_dotenv)
 # set ollama host if provided
 os.environ["OLLAMA_HOST"] = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
-# Environment variables
-_sqlalchemy_uri = os.getenv("SQLALCHEMY_DATABASE_URI", None)
-_host = os.getenv("COMPUTERNAME", "unknown")
-_user = os.getenv("USERNAME", "unknown")
-
 # Setup paths
 local_db_path = _app_data_dir / "local.db"
 _md_vault = _app_data_dir / "md_vault"
@@ -44,7 +39,6 @@ _ignore_parts_path = _app_data_dir / "ignore_parts.json"
 _ignore_ext_path = _app_data_dir / "ignore_ext.json"
 _md_xref_path = _app_data_dir / "md_xref.json"
 _headers_path = _app_data_dir / "headers.json"
-_config_path = _app_data_dir / "config.json"
 
 
 def _init_config():
@@ -68,20 +62,17 @@ MD_VAULT: Path = _md_vault
 IGNORE_PARTS_CONFIG: Path = _ignore_parts_path
 IGNORE_EXTENSIONS_CONFIG: Path = _ignore_ext_path
 MD_XREF_CONFIG: Path = _md_xref_path
+HEADERS_CONFIG: Path = _headers_path
+MAX_TOKENS: int = os.environ.get("MAX_TOKENS", 2048)
+EMBEDDING_LENGTH: int = os.environ.get("EMBEDDING_LENGTH", 768)
+EMBED_MODEL_HF_ID: str = os.environ.get("EMBED_MODEL_HF_ID", None)
+EMBED_MODEL_NAME: str = os.environ.get("EMBED_MODEL_NAME", "nomic-embed-text")
+LOCAL_DB_URI: str = os.environ.get("LOCAL_DB_URI", f"sqlite:///{local_db_path}")
+HOST: str = os.environ.get("HOST", None) or os.getenv("COMPUTERNAME", None) or "unknown"
+USER: str = os.environ.get("USER", None) or os.getenv("USERNAME", None) or "unknown"
+SQLALCHEMY_DATABASE_URI: str = os.environ.get("SQLALCHEMY_DATABASE_URI", None)
+MAX_FILE_SIZE: int = os.environ.get("MAX_FILE_SIZE", 3 * 1024 * 1024)  # 3 MB
 
-MAX_TOKENS: int = 2048
-EMBEDDING_LENGTH: int = 768
-EMBED_MODEL_HF_ID: str = "nomic-ai/nomic-embed-text-v1.5"
-EMBED_MODEL_NAME: str = "nomic-embed-text"
-
-OBSIDIAN_EXE: str = (
-    f"C:\\Users\\{_user}\\AppData\\Local\\Programs\\Obsidian\\Obsidian.exe"
-)
-
-LOCAL_DB_URI: str = f"sqlite:///{local_db_path}"
-HOST: str = _host
-USER: str = _user
-POSTGRES_URI: str = _sqlalchemy_uri
 VAULT_FOLDER = ".obsidian"
 VAULT_EXTENSIONS = {".md"}
 
@@ -90,7 +81,7 @@ class Config(BaseSettings):
     """Application configuration using Pydantic BaseSettings."""
 
     db_path: str = local_db_path.as_posix()
-    remote_db_uri: str | None = POSTGRES_URI
+    remote_db_uri: str | None = SQLALCHEMY_DATABASE_URI
     local_db_uri: str = LOCAL_DB_URI
     md_vault: Path = MD_VAULT
     app_storage: Path = STORAGE
@@ -100,12 +91,13 @@ class Config(BaseSettings):
     headers: dict[str, str] = HEADERS
     embed_model_id: str = EMBED_MODEL_HF_ID
     embed_model_name: str = EMBED_MODEL_NAME
-    embedding_length: int = EMBEDDING_LENGTH
-    max_tokens: int = MAX_TOKENS
+    embedding_length: int = int(EMBEDDING_LENGTH)
+    max_tokens: int = int(MAX_TOKENS)
     host: str = HOST
     user: str = USER
     vault_folder: str = VAULT_FOLDER
     vault_extensions: set[str] = VAULT_EXTENSIONS
+    max_file_size: int = int(MAX_FILE_SIZE)
 
     model_config = {
         "json_encoders": {
@@ -171,6 +163,28 @@ def export_config_command(
 ):
     """Export configuration to specified directory."""
     export_config(fp)
+
+
+__all__ = [
+    "Config",
+    "app_config",
+    "config_cli",
+    "ppconfig_conf",
+    "export_config",
+    "_init_config",
+    "STORAGE",
+    "MD_VAULT",
+    "LOCAL_DB_URI",
+    "SQLALCHEMY_DATABASE_URI",
+    "MAX_TOKENS",
+    "EMBEDDING_LENGTH",
+    "LOCAL_DB_URI",
+    "HEADERS",
+    "IGNORE_PARTS",
+    "IGNORE_EXTENSIONS",
+    "MD_XREF",
+    "IS_INITIALIZED",
+]
 
 
 if __name__ == "__main__":

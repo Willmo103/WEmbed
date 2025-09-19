@@ -2403,6 +2403,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
     { name = "sqlite-utils" },
+    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -2453,6 +2454,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
     { name = "sqlite-utils", specifier = ">=3.38" },
+    { name = "typer", specifier = ">=0.9.0" },
 ]
 provides-extras = ["test", "dev"]
 
