@@ -1,14 +1,11 @@
-from datetime import datetime, timezone
-from typing import List, Optional, List
+from datetime import datetime
 
 import llm
 from docling_core.transforms.chunker.base import BaseChunk
-from docling_core.types.doc.document import DoclingDocument
 from pydantic import BaseModel, Field, Json, computed_field
-from sqlalchemy import Table
 from sqlite_utils import Database
 
-from file_scanner import ListFileOpts
+from wembed.file_scanner import ListFileOpts
 
 
 class _BaseModel(BaseModel):
