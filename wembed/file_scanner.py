@@ -35,7 +35,6 @@ def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
 def _scan_directory(
     path: str, scan_type: ScanTypes, tracked_only: bool = False
 ) -> list[ScanResultSchema]:
-
     """
     Core scanning logic for REPO, VAULT, and LIST scan types.
     Returns a list of ScanResultSchema objects.
