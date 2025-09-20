@@ -5,7 +5,7 @@ from docling_core.transforms.chunker.base import BaseChunk
 from pydantic import BaseModel, Field, Json, computed_field
 from sqlite_utils import Database
 
-from wembed.file_scanner import ListFileOpts
+from src.wembed.file_scanner import ListFileOpts
 
 
 class _BaseModel(BaseModel):
