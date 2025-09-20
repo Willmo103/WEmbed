@@ -2,20 +2,18 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
 from sqlite_utils import Database
 from typer.testing import CliRunner
 
 # Import from your wembed package
-from wembed import (
+from src.wembed import (
     EMBEDDING_LENGTH,
     LOCAL_DB_URI,
     MAX_TOKENS,
     MD_VAULT,
-    SQLALCHEMY_DATABASE_URI,
     STORAGE,
     Config,
     _init_config,
