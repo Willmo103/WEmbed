@@ -2,7 +2,7 @@ from pathlib import Path
 
 import psycopg2
 import typer
-from config import app_config
+from ..config import app_config
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -35,7 +35,7 @@ from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
 # Database initialization and connection management
 DB_INIT = False
 _local_uri = app_config.local_db_uri
-_remote_uri = app_config.remote_db_uri
+_remote_uri = app_config.app_db_uri
 
 
 def test_db_connection() -> bool:
