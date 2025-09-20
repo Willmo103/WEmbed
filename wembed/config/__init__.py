@@ -81,7 +81,7 @@ class Config(BaseSettings):
     """Application configuration using Pydantic BaseSettings."""
 
     db_path: str = local_db_path.as_posix()
-    remote_db_uri: str | None = SQLALCHEMY_DATABASE_URI
+    app_db_uri: str | None = SQLALCHEMY_DATABASE_URI
     local_db_uri: str = LOCAL_DB_URI
     md_vault: Path = MD_VAULT
     app_storage: Path = STORAGE
@@ -113,10 +113,10 @@ class Config(BaseSettings):
         return Database(self.db_path)
 
     @computed_field
-    def postgres_db(self) -> Engine | None:
+    def app_db(self) -> Engine | None:
         """Get PostgreSQL database engine if URI is provided."""
-        if self.remote_db_uri:
-            return create_engine(self.remote_db_uri)
+        if self.app_db_uri:
+            return create_engine(self.app_db_uri)
         return None
 
 

@@ -87,10 +87,17 @@ class TestConfigClass:
         db = config.local_db
         assert isinstance(db, Database)
 
-    def test_postgres_db_computed_field_none(self):
-        """Test postgres_db returns None when no URI provided."""
-        config = Config(remote_db_uri=None)
-        assert config.postgres_db is None
+    def test_app_db_computed_field_none(self):
+        """Test app_db returns None when no URI provided."""
+        config = Config(app_db_uri=None)
+        assert config.app_db is None
+
+    def test_app_db_computed_field_with_uri(self):
+        """Test app_db returns Engine when URI is provided."""
+        from sqlalchemy.engine import Engine
+        config = Config(app_db_uri="postgresql+psycopg2://SystemAdmin:sa-password@192.168.0.5:5401/local")
+        assert config.app_db is not None
+        assert isinstance(config.app_db, Engine)
 
     def test_model_config_json_encoders(self):
         """Test that Path objects are properly encoded in JSON."""
@@ -216,7 +223,7 @@ def temp_config():
             db_path=db_path.as_posix(),
             app_storage=temp_path,
             md_vault=vault_path,
-            remote_db_uri=None,
+            app_db_uri=None,
         )
 
         yield config
@@ -250,7 +257,7 @@ class TestConfigFixture:
             db_path=":memory:",
             app_storage=Path.cwd(),  # Use current directory
             md_vault=Path.cwd() / "temp_vault",
-            remote_db_uri=None,
+            app_db_uri=None,
         )
         assert isinstance(config, Config)
 
