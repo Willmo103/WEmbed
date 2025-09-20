@@ -15,7 +15,6 @@ class _BaseModel(BaseModel):
         arbitrary_types_allowed: bool = True
 
 
-
 class ChunkModel(_BaseModel):
     index: int
     chunk: Json[BaseChunk]

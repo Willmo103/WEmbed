@@ -16,5 +16,7 @@ wheels/
 *.idea
 data/
 .vscode
+.pytest_cache/
+app_data
+htmlcov
 .coverage
-htmlcov/
