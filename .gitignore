@@ -16,3 +16,5 @@ wheels/
 *.idea
 data/
 .vscode
+.coverage
+htmlcov/
