@@ -16,7 +16,7 @@ from .md_xref import MD_XREF
 IS_INITIALIZED = False
 
 # Path determination logic from constants.py
-_root_dir = Path(__file__).resolve().parent.parent
+_root_dir = Path(__file__).resolve().parent.parent.parent
 _app_data_dir = _root_dir.parent / "data"
 
 # Get storage path from environment or use default
