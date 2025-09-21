@@ -12,5 +12,10 @@ main_cli.add_typer(db, name="db", help="Database commands")
 main_cli.add_typer(proc, name="proc", help="File processing commands")
 main_cli.add_typer(docproc, name="doc", help="Document processing commands")
 
-if __name__ == "__main__":
+
+def main():
     main_cli()
+
+
+if __name__ == "__main__":
+    main()
