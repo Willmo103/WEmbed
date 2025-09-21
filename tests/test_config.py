@@ -93,7 +93,10 @@ class TestConfigClass:
     def test_app_db_computed_field_with_uri(self):
         """Test app_db returns Engine when URI is provided."""
         from sqlalchemy.engine import Engine
-        config = Config(app_db_uri="postgresql+psycopg2://SystemAdmin:sa-password@192.168.0.5:5401/local")
+
+        config = Config(
+            app_db_uri="postgresql+psycopg2://SystemAdmin:sa-password@192.168.0.5:5401/local"
+        )
         assert config.app_db is not None
         assert isinstance(config.app_db, Engine)
 
