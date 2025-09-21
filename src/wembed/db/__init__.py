@@ -2,7 +2,7 @@ from pathlib import Path
 
 import psycopg2
 import typer
-from config import app_config # noqa
+from config import app_config  # noqa
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
