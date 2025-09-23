@@ -41,7 +41,7 @@ _md_xref_path = _app_data_dir / "md_xref.json"
 _headers_path = _app_data_dir / "headers.json"
 
 
-def _init_config():
+def init_config():
     """Initialize configuration directories and files."""
     global IS_INITIALIZED
     if IS_INITIALIZED:
@@ -54,7 +54,7 @@ def _init_config():
 
 
 if not IS_INITIALIZED:
-    _init_config()
+    init_config()
 
 # Constants
 STORAGE: Path = _app_data_dir
@@ -171,7 +171,7 @@ __all__ = [
     "config_cli",
     "ppconfig_conf",
     "export_config",
-    "_init_config",
+    "init_config",
     "STORAGE",
     "MD_VAULT",
     "LOCAL_DB_URI",
