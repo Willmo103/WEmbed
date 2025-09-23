@@ -6,8 +6,8 @@ from typing import List, Optional
 
 import llm
 import typer
-from config import app_config
-from db import (
+from .config import app_config
+from .db import (
     ChunkRecordCRUD,
     ChunkRecordSchema,
     DocumentRecordCRUD,

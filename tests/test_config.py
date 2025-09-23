@@ -16,7 +16,7 @@ from src.wembed import (
     MD_VAULT,
     STORAGE,
     Config,
-    _init_config,
+    init_config,
     app_config,
     config_cli,
     export_config,
@@ -56,8 +56,8 @@ class TestInitConfig:
     def test_init_config_idempotent(self):
         """Test that _init_config can be called multiple times safely."""
         # Should not raise any exceptions
-        _init_config()
-        _init_config()
+        init_config()
+        init_config()
 
 
 class TestConfigClass:
