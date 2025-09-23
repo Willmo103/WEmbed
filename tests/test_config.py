@@ -9,7 +9,7 @@ from sqlite_utils import Database
 from typer.testing import CliRunner
 
 # Import from your wembed package
-from src.wembed import (
+from . import (
     EMBEDDING_LENGTH,
     LOCAL_DB_URI,
     MAX_TOKENS,
