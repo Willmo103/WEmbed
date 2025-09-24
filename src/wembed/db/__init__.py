@@ -53,6 +53,10 @@ def _get_engine(uri: str) -> Engine:
     return create_engine(uri)
 
 
+def _get_local_engine() -> Engine:
+    return create_engine(_local_uri)
+
+
 def drop_models(uri: str) -> None:
     eng = _get_engine(uri)
     sql = "DELETE FROM interface WHERE table_name Like 'dl_%';"
@@ -103,7 +107,13 @@ def get_session_remote(uri: str = _remote_uri) -> Session | None:
 
 
 def get_session() -> Session:
-    return get_session_remote() or get_session_local()
+    try:
+        _remote = get_session_remote()
+        if _remote:
+            return _remote
+    except Exception as e:
+        print(f"Error connecting to remote DB: {e}")
+        return get_session_local()
 
 
 # CLI Commands
