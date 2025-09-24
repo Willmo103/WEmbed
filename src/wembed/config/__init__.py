@@ -136,7 +136,7 @@ def ppconfig_conf():
 
 def export_config(fp: str):
     """Export configuration to a JSON file."""
-    fp = Path(fp).resolve() / "file_injester.config.json"
+    fp = Path(fp).resolve() / "wembed_config.json"
     with open(fp, "w") as f:
         f.write(
             app_config.model_dump_json(

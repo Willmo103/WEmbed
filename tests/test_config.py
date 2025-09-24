@@ -158,7 +158,7 @@ class TestConfigFunctions:
         """Test exporting configuration to file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             export_config(temp_dir)
-            config_file = Path(temp_dir) / "file_injester.config.json"
+            config_file = Path(temp_dir) / "wembed_config.json"
             assert config_file.exists()
 
             # Check file content
@@ -188,7 +188,7 @@ class TestConfigCLI:
             assert result.exit_code == 0
 
             # Check file was created
-            config_file = Path(temp_dir) / "file_injester.config.json"
+            config_file = Path(temp_dir) / "wembed_config.json"
             assert config_file.exists()
 
     def test_cli_help(self):
@@ -288,7 +288,7 @@ class TestConfigIntegration:
             export_config(temp_dir)
 
             # Read exported file
-            config_file = Path(temp_dir) / "file_injester.config.json"
+            config_file = Path(temp_dir) / "wembed_config.json"
             content = config_file.read_text()
 
             # Should contain expected keys
