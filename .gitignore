@@ -21,3 +21,4 @@ htmlcov/
 .pytest_cache/
 app_data
 htmlcov
+.dev*
