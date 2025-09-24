@@ -26,7 +26,7 @@ class SessionTests:
 
             # If not configured, get_session_remote should return None
             try:
-                result = wdb.get_session_remote()
+                result = self.wdb.get_session_remote()
             except Exception:
                 # If implementation raises when not configured, consider it equivalent to not available
                 result = None
@@ -38,10 +38,10 @@ class SessionTests:
             sentinel_local = object()
 
             # Stub the internals to control behavior
-            monkeypatch.setattr(wdb, "get_session_remote", lambda: sentinel_remote)
-            monkeypatch.setattr(wdb, "get_session_local", lambda: sentinel_local)
+            monkeypatch.setattr(self.wdb, "get_session_remote", lambda: sentinel_remote)
+            monkeypatch.setattr(self.wdb, "get_session_local", lambda: sentinel_local)
 
-            result = wdb.get_session()
+            result = self.wdb.get_session()
             assert result is sentinel_remote
 
         def test_get_session_falls_back_to_local_when_remote_unavailable(
@@ -49,10 +49,10 @@ class SessionTests:
         ):
             sentinel_local = object()
 
-            monkeypatch.setattr(wdb, "get_session_remote", lambda: None)
-            monkeypatch.setattr(wdb, "get_session_local", lambda: sentinel_local)
+            monkeypatch.setattr(self.wdb, "get_session_remote", lambda: None)
+            monkeypatch.setattr(self.wdb, "get_session_local", lambda: sentinel_local)
 
-            result = wdb.get_session()
+            result = self.wdb.get_session()
             assert result is sentinel_local
 
         def test_get_session_local_uses_sqlite_engine(self, monkeypatch):
@@ -73,10 +73,10 @@ class SessionTests:
 
                 return lambda: FakeSession()
 
-            monkeypatch.setattr(wdb, "create_engine", fake_create_engine)
-            monkeypatch.setattr(wdb, "sessionmaker", fake_sessionmaker)
+            monkeypatch.setattr(self.wdb, "create_engine", fake_create_engine)
+            monkeypatch.setattr(self.wdb, "sessionmaker", fake_sessionmaker)
 
-            session = wdb.get_session_local()
+            session = self.wdb.get_session_local()
             # Verify we returned a session-like object
             assert session is not None
             # Verify SQLite is used for local session
@@ -91,19 +91,19 @@ class SessionTests:
 
             sentinel_local = object()
 
-            monkeypatch.setattr(wdb, "get_session_remote", failing_remote)
-            monkeypatch.setattr(wdb, "get_session_local", lambda: sentinel_local)
+            monkeypatch.setattr(self.wdb, "get_session_remote", failing_remote)
+            monkeypatch.setattr(self.wdb, "get_session_local", lambda: sentinel_local)
 
-            result = wdb.get_session()
+            result = self.wdb.get_session()
             assert result is sentinel_local
 
     class ModuleStructureTests:
         def test_db_module_exports_expected_functions(self):
-            assert hasattr(wdb, "get_session")
-            assert hasattr(wdb, "get_session_local")
-            assert hasattr(wdb, "get_session_remote")
+            assert hasattr(self.wdb, "get_session")
+            assert hasattr(self.wdb, "get_session_local")
+            assert hasattr(self.wdb, "get_session_remote")
 
         def test_base_is_available(self):
             # Base should be available for model metadata/DDL operations
-            assert hasattr(wdb, "Base")
-            assert hasattr(wdb.Base, "metadata")
+            assert hasattr(self.wdb, "Base")
+            assert hasattr(self.wdb.Base, "metadata")
