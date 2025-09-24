@@ -10,4 +10,5 @@ from src.wembed import (
     config_cli,
     export_config,
     ppconfig_conf,
+    db as db_module
 )
