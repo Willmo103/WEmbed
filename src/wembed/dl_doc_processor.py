@@ -2,10 +2,15 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import llm
 import typer
+from docling.document_converter import DocumentConverter
+from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
+from docling_core.types.doc.document import DoclingDocument
+
 from .config import app_config
 from .db import (
     ChunkRecordCRUD,
@@ -16,11 +21,6 @@ from .db import (
     InputRecordCRUD,
     get_session,
 )
-from docling.document_converter import DocumentConverter
-from docling_core.transforms.chunker.base import BaseChunk
-from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
-from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
-from docling_core.types.doc.document import DoclingDocument
 
 MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 

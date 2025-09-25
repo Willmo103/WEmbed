@@ -1,19 +1,21 @@
-import pytest
 from unittest import mock
+
+import pytest
+
+# To make the integration test runnable, we need a simple SQLAlchemy model.
+# If you have existing models in your project, you can import and use one of them instead.
+from sqlalchemy import Column, Integer, String
 
 # Assuming your project structure allows this import.
 # This is simpler and more direct than using importlib.
 from src.wembed import db as wdb
 from src.wembed.db import Base
 
-# To make the integration test runnable, we need a simple SQLAlchemy model.
-# If you have existing models in your project, you can import and use one of them instead.
-from sqlalchemy import Column, Integer, String
-
 
 class SampleModel(Base):
     """A simple model for testing database operations."""
-    __tablename__ = 'sample_table'
+
+    __tablename__ = "sample_table"
     id = Column(Integer, primary_key=True)
     name = Column(String)
 
@@ -21,6 +23,7 @@ class SampleModel(Base):
 # --- Unit Tests for Session Selection Logic ---
 # These tests use mocking to verify the correctness of the session fallback logic
 # without needing a real database connection. They are fast and test one specific thing.
+
 
 class TestSessionSelectionLogic:
     """
@@ -39,7 +42,9 @@ class TestSessionSelectionLogic:
         monkeypatch.setattr(wdb, "get_session_local", lambda: sentinel_local)
 
         result = wdb.get_session()
-        assert result is sentinel_remote, "Should have returned the remote session object"
+        assert (
+            result is sentinel_remote
+        ), "Should have returned the remote session object"
 
     def test_get_session_returns_none_when_remote_is_none(self, monkeypatch):
         """
@@ -61,12 +66,16 @@ class TestSessionSelectionLogic:
         result = wdb.get_session()
 
         # Assert the actual behavior: it returns None
-        assert result is None, "get_session should return None when remote is None and no exception occurs"
+        assert (
+            result is None
+        ), "get_session should return None when remote is None and no exception occurs"
 
         # Assert that the fallback to local was NOT triggered
         local_mock.assert_not_called()
 
-    def test_get_session_falls_back_to_local_when_remote_raises_exception(self, monkeypatch):
+    def test_get_session_falls_back_to_local_when_remote_raises_exception(
+        self, monkeypatch
+    ):
         """
         Ensures that if get_session_remote() raises an error, it is caught
         and the system falls back to the local session.
@@ -81,12 +90,15 @@ class TestSessionSelectionLogic:
         monkeypatch.setattr(wdb, "get_session_local", lambda: sentinel_local)
 
         result = wdb.get_session()
-        assert result is sentinel_local, "Should have fallen back to local after remote raised an exception"
+        assert (
+            result is sentinel_local
+        ), "Should have fallen back to local after remote raised an exception"
 
 
 # --- Integration Tests for Database Functionality ---
 # These tests connect to a REAL (but temporary) database to ensure
 # that the session handling, model creation, and transactions work correctly.
+
 
 class TestDatabaseIntegration:
     """
@@ -140,7 +152,9 @@ class TestDatabaseIntegration:
         session.commit()
 
         # 2. Query the database to see if the item was saved correctly
-        retrieved_item = session.query(SampleModel).filter_by(name="test_item").one_or_none()
+        retrieved_item = (
+            session.query(SampleModel).filter_by(name="test_item").one_or_none()
+        )
 
         assert retrieved_item is not None
         assert retrieved_item.name == "test_item"
@@ -155,4 +169,3 @@ class TestDatabaseIntegration:
         assert hasattr(wdb, "get_session_remote")
         assert hasattr(wdb, "Base")
         assert hasattr(wdb.Base, "metadata")
-

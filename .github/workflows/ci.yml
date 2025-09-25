@@ -1,0 +1,60 @@
+name: Python CI with UV
+
+on:
+  push:
+    branches: [ "master", "dev-main" ]
+
+  pull_request:
+    branches: [ "master", "dev-main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: 'latest'
+          python-version: 3.13
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras -p 3.13
+          uv pip install -e .
+
+      # Step 5: Lints code with flake8.
+      - name: Lint with flake8
+        run: |
+          uv run flake8 src tests
+
+      # Step 6: Checks code formatting with black.
+      - name: Check formatting with black
+        run: |
+          uv run black --check .
+
+      # Step 7: Checks import order with isort.
+      - name: Check import order with isort
+        run: |
+          uv run isort --check-only .
+
+      # Step 8: Runs the test suite with pytest.
+      - name: Run tests with pytest
+        run: |
+          # Executes your test suite using the uv-managed environment.
+          uv run pytest
+
+      # Step 9: Uploads the coverage report as a workflow artifact.
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: tests/coverage.xml

@@ -2,10 +2,10 @@ from pathlib import Path
 
 import psycopg2
 import typer
-from ..config import app_config  # noqa
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from ..config import app_config  # noqa
 from ._base import Base
 from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
 from .document_index import DocumentIndexCRUD, DocumentIndexRecord, DocumentIndexSchema

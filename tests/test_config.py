@@ -16,10 +16,10 @@ from . import (
     MD_VAULT,
     STORAGE,
     Config,
-    init_config,
     app_config,
     config_cli,
     export_config,
+    init_config,
     ppconfig_conf,
 )
 
