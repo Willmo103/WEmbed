@@ -2,7 +2,7 @@ from pathlib import Path
 
 import psycopg2
 import typer
-from config import app_config
+from ..config import app_config  # noqa
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -35,7 +35,7 @@ from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
 # Database initialization and connection management
 DB_INIT = False
 _local_uri = app_config.local_db_uri
-_remote_uri = app_config.remote_db_uri
+_remote_uri = app_config.app_db_uri
 
 
 def test_db_connection() -> bool:
@@ -51,6 +51,10 @@ def test_db_connection() -> bool:
 
 def _get_engine(uri: str) -> Engine:
     return create_engine(uri)
+
+
+def _get_local_engine() -> Engine:
+    return create_engine(_local_uri)
 
 
 def drop_models(uri: str) -> None:
@@ -103,7 +107,13 @@ def get_session_remote(uri: str = _remote_uri) -> Session | None:
 
 
 def get_session() -> Session:
-    return get_session_remote() or get_session_local()
+    try:
+        _remote = get_session_remote()
+        if _remote:
+            return _remote
+    except Exception as e:
+        print(f"Error connecting to remote DB: {e}")
+        return get_session_local()
 
 
 # CLI Commands

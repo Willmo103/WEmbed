@@ -16,7 +16,7 @@ from .md_xref import MD_XREF
 IS_INITIALIZED = False
 
 # Path determination logic from constants.py
-_root_dir = Path(__file__).resolve().parent.parent
+_root_dir = Path(__file__).resolve().parent.parent.parent
 _app_data_dir = _root_dir.parent / "data"
 
 # Get storage path from environment or use default
@@ -41,7 +41,7 @@ _md_xref_path = _app_data_dir / "md_xref.json"
 _headers_path = _app_data_dir / "headers.json"
 
 
-def _init_config():
+def init_config():
     """Initialize configuration directories and files."""
     global IS_INITIALIZED
     if IS_INITIALIZED:
@@ -54,7 +54,7 @@ def _init_config():
 
 
 if not IS_INITIALIZED:
-    _init_config()
+    init_config()
 
 # Constants
 STORAGE: Path = _app_data_dir
@@ -136,7 +136,7 @@ def ppconfig_conf():
 
 def export_config(fp: str):
     """Export configuration to a JSON file."""
-    fp = Path(fp).resolve() / "file_injester.config.json"
+    fp = Path(fp).resolve() / "wembed_config.json"
     with open(fp, "w") as f:
         f.write(
             app_config.model_dump_json(
@@ -171,7 +171,7 @@ __all__ = [
     "config_cli",
     "ppconfig_conf",
     "export_config",
-    "_init_config",
+    "init_config",
     "STORAGE",
     "MD_VAULT",
     "LOCAL_DB_URI",

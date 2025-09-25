@@ -12,13 +12,13 @@ from sqlite_utils import Database
 
 # Import from your actual package structure
 try:
-    from wembed import Config
+    from . import Config
 except ImportError:
     # If the package isn't installed, add parent directory to path
     import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from wembed import Config
+    from . import Config
 
 
 @pytest.fixture

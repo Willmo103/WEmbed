@@ -6,8 +6,8 @@ from typing import Iterable, Set
 from uuid import uuid4
 
 import typer
-from config import app_config
-from db import (
+from .config import app_config
+from .db import (
     RepoRecordCRUD,
     RepoRecordSchema,
     ScanResultCRUD,
@@ -16,7 +16,7 @@ from db import (
     VaultRecordSchema,
     get_session,
 )
-from enums import ScanTypes
+from .enums import ScanTypes
 
 
 def _iter_files(base: Path) -> Iterable[Path]:

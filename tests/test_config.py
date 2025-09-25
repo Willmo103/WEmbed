@@ -2,23 +2,21 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
 from sqlite_utils import Database
 from typer.testing import CliRunner
 
 # Import from your wembed package
-from wembed import (
+from . import (
     EMBEDDING_LENGTH,
     LOCAL_DB_URI,
     MAX_TOKENS,
     MD_VAULT,
-    SQLALCHEMY_DATABASE_URI,
     STORAGE,
     Config,
-    _init_config,
+    init_config,
     app_config,
     config_cli,
     export_config,
@@ -58,8 +56,8 @@ class TestInitConfig:
     def test_init_config_idempotent(self):
         """Test that _init_config can be called multiple times safely."""
         # Should not raise any exceptions
-        _init_config()
-        _init_config()
+        init_config()
+        init_config()
 
 
 class TestConfigClass:
@@ -95,7 +93,10 @@ class TestConfigClass:
     def test_app_db_computed_field_with_uri(self):
         """Test app_db returns Engine when URI is provided."""
         from sqlalchemy.engine import Engine
-        config = Config(app_db_uri="postgresql+psycopg2://SystemAdmin:sa-password@192.168.0.5:5401/local")
+
+        config = Config(
+            app_db_uri="postgresql+psycopg2://SystemAdmin:sa-password@192.168.0.5:5401/local"
+        )
         assert config.app_db is not None
         assert isinstance(config.app_db, Engine)
 
@@ -157,7 +158,7 @@ class TestConfigFunctions:
         """Test exporting configuration to file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             export_config(temp_dir)
-            config_file = Path(temp_dir) / "file_injester.config.json"
+            config_file = Path(temp_dir) / "wembed_config.json"
             assert config_file.exists()
 
             # Check file content
@@ -187,7 +188,7 @@ class TestConfigCLI:
             assert result.exit_code == 0
 
             # Check file was created
-            config_file = Path(temp_dir) / "file_injester.config.json"
+            config_file = Path(temp_dir) / "wembed_config.json"
             assert config_file.exists()
 
     def test_cli_help(self):
@@ -287,7 +288,7 @@ class TestConfigIntegration:
             export_config(temp_dir)
 
             # Read exported file
-            config_file = Path(temp_dir) / "file_injester.config.json"
+            config_file = Path(temp_dir) / "wembed_config.json"
             content = config_file.read_text()
 
             # Should contain expected keys

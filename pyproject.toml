@@ -38,7 +38,9 @@ Issues = "https://github.com/Willmo103/WEmbed/issues"
 
 [project.scripts]
 cli = "wembed.cli:main"
-config = "wembed:config_cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
