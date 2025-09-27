@@ -57,16 +57,26 @@ class DocumentIndexCRUD:
     @staticmethod
     def get_all(
         db: Session, skip: int = 0, limit: int = 100
-    ) -> list[DocumentIndexRecord]:
-        return db.query(DocumentIndexRecord).offset(skip).limit(limit).all()
+    ) -> list[DocumentIndexSchema]:
+        _records = db.query(DocumentIndexRecord).offset(skip).limit(limit).all()
+        try:
+            records = [DocumentIndexRecord(**r.__dict__) for r in _records]
+            return [DocumentIndexCRUD.to_schema(rec) for rec in records]
+        except Exception:
+            return []
 
     @staticmethod
-    def get_unrendered(db: Session) -> list[DocumentIndexRecord]:
-        return (
+    def get_unrendered(db: Session) -> list[DocumentIndexSchema]:
+        results = (
             db.query(DocumentIndexRecord)
-            .filter(DocumentIndexRecord.last_rendered.is_(None))
+            .filter(DocumentIndexRecord.last_rendered == None)
             .all()
         )
+        try:
+            records = [DocumentIndexRecord(**r.__dict__) for r in results]
+            return [DocumentIndexCRUD.to_schema(rec) for rec in records]
+        except Exception:
+            return []
 
     @staticmethod
     def update(

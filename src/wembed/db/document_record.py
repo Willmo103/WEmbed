@@ -205,7 +205,7 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def update_chunks(
-        db: Session, doc_id: int, chunks_json: List[BaseChunk]
+        db: Session, doc_id: int, chunks_json: str
     ) -> Optional[DocumentRecord]:
         db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
         if db_record:
