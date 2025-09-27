@@ -15,7 +15,7 @@ from .config import app_config
 from .db import (
     ChunkRecordCRUD,
     ChunkRecordSchema,
-    DocumentRecordCRUD,
+    DocumentRecordRepo,
     DocumentRecordSchema,
     FileRecordCRUD,
     InputRecordCRUD,
@@ -109,7 +109,7 @@ class DlDocProcessor:
             )
 
             # Save document record to get ID
-            db_doc_record = DocumentRecordCRUD.create(session, doc_record)
+            db_doc_record = DocumentRecordRepo.create(session, doc_record)
             doc_id = db_doc_record.id
             typer.echo(f"Created document record with ID: {doc_id}")
 
@@ -170,7 +170,7 @@ class DlDocProcessor:
 
                 chunks_data = str([chunk.model_dump_json() for chunk in chunks])
                 # Update document with chunks_json
-                DocumentRecordCRUD.update_chunks(session, doc_id, chunks_data)
+                DocumentRecordRepo.update_chunks(session, doc_id, chunks_data)
 
                 typer.echo(
                     f"\nProcessed {total_chunks - len(errors)} chunks successfully"
@@ -380,7 +380,7 @@ def show_status_command():
     try:
         pending_count = len(InputRecordCRUD.get_unprocessed(session))
         processed_count = len(InputRecordCRUD.get_by_status(session, "processed"))
-        total_docs = len(DocumentRecordCRUD.get_all(session))
+        total_docs = len(DocumentRecordRepo.get_all(session))
         total_chunks = len(ChunkRecordCRUD.get_all(session))
 
         typer.echo("=== Document Processing Status ===")

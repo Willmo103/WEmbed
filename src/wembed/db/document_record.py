@@ -127,7 +127,7 @@ class StringContentOut(BaseModel):
         from_attributes = True
 
 
-class DocumentRecordCRUD:
+class DocumentRecordRepo:
     @staticmethod
     def create(db: Session, document: DocumentRecordSchema) -> DocumentRecord:
         db_record = DocumentRecord(
@@ -165,7 +165,7 @@ class DocumentRecordCRUD:
         )
         try:
             records = [DocumentRecord(**r.__dict__) for r in results]
-            return [DocumentRecordCRUD.to_schema(record) for record in records]
+            return [DocumentRecordRepo.to_schema(record) for record in records]
         except Exception:
             return []
 
@@ -186,7 +186,7 @@ class DocumentRecordCRUD:
         )
         try:
             records = [DocumentRecord(**r.__dict__) for r in results]
-            return [DocumentRecordCRUD.to_schema(record) for record in records]
+            return [DocumentRecordRepo.to_schema(record) for record in records]
         except Exception:
             return []
 
@@ -199,7 +199,7 @@ class DocumentRecordCRUD:
         )
         try:
             records = [DocumentRecord(**r.__dict__) for r in results]
-            return [DocumentRecordCRUD.to_schema(record) for record in records]
+            return [DocumentRecordRepo.to_schema(record) for record in records]
         except Exception:
             return []
 
@@ -211,7 +211,7 @@ class DocumentRecordCRUD:
     def update(
         db: Session, doc_id: int, document: DocumentRecordSchema
     ) -> Optional[DocumentRecord]:
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             update_data = document.model_dump(exclude_unset=True, exclude={"id"})
             if "dl_doc" in update_data and update_data["dl_doc"]:
@@ -245,7 +245,7 @@ class DocumentRecordCRUD:
         Returns:
             Optional[DocumentRecord]: The updated document record, or None if not found.
         """
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             db_record.text = text
             if markdown is not None:
@@ -272,7 +272,7 @@ class DocumentRecordCRUD:
         Returns:
             Optional[DocumentRecord]: The updated document record, or None if not found.
         """
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             db_record.chunks_json = chunks_json
             db_record.updated_at = datetime.now(timezone.utc)
@@ -292,7 +292,7 @@ class DocumentRecordCRUD:
         Returns:
             bool: True if the record was deleted, False if not found.
         """
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             db.delete(db_record)
             db.commit()
