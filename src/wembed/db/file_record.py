@@ -1,13 +1,13 @@
 # file_record.py
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Type
 
 from pydantic import BaseModel, Field, computed_field
 from sqlalchemy import DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class FileRecord(Base):
@@ -69,7 +69,7 @@ class FileRecordSchema(BaseModel):
     mimetype: Optional[str] = None
     markdown: Optional[str] = None
 
-    def bump_version(self):
+    def bump_version(self) -> None:
         self.version += 1
 
     class Config:
@@ -138,31 +138,31 @@ class FileRecordCRUD:
         return db.query(FileRecord).filter(FileRecord.sha256 == sha256).first()
 
     @staticmethod
-    def get_by_source_type(db: Session, source_type: str) -> list[FileRecord]:
+    def get_by_source_type(db: Session, source_type: str) -> list[Type[FileRecord]]:
         return db.query(FileRecord).filter(FileRecord.source_type == source_type).all()
 
     @staticmethod
-    def get_by_source_name(db: Session, source_name: str) -> list[FileRecord]:
+    def get_by_source_name(db: Session, source_name: str) -> list[Type[FileRecord]]:
         return db.query(FileRecord).filter(FileRecord.source_name == source_name).all()
 
     @staticmethod
-    def get_by_host(db: Session, host: str) -> list[FileRecord]:
+    def get_by_host(db: Session, host: str) -> list[Type[FileRecord]]:
         return db.query(FileRecord).filter(FileRecord.host == host).all()
 
     @staticmethod
-    def get_by_suffix(db: Session, suffix: str) -> list[FileRecord]:
+    def get_by_suffix(db: Session, suffix: str) -> list[Type[FileRecord]]:
         return db.query(FileRecord).filter(FileRecord.suffix == suffix).all()
 
     @staticmethod
-    def get_by_mimetype(db: Session, mimetype: str) -> list[FileRecord]:
+    def get_by_mimetype(db: Session, mimetype: str) -> list[Type[FileRecord]]:
         return db.query(FileRecord).filter(FileRecord.mimetype == mimetype).all()
 
     @staticmethod
-    def search_by_name(db: Session, name_pattern: str) -> list[FileRecord]:
+    def search_by_name(db: Session, name_pattern: str) -> list[Type[FileRecord]]:
         return db.query(FileRecord).filter(FileRecord.name.contains(name_pattern)).all()
 
     @staticmethod
-    def search_by_content(db: Session, search_text: str) -> list[FileRecord]:
+    def search_by_content(db: Session, search_text: str) -> list[Type[FileRecord]]:
         return (
             db.query(FileRecord)
             .filter(FileRecord.content_text.contains(search_text))
@@ -170,7 +170,7 @@ class FileRecordCRUD:
         )
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> list[FileRecord]:
+    def get_all(db: Session, skip: int = 0, limit: int = 100) -> list[Type[FileRecord]]:
         return db.query(FileRecord).offset(skip).limit(limit).all()
 
     @staticmethod

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class ChunkRecord(Base):
@@ -76,13 +76,18 @@ class ChunkRecordCRUD:
         return db.query(ChunkRecord).filter(ChunkRecord.id == chunk_id).first()
 
     @staticmethod
-    def get_by_document_id(db: Session, document_id: int) -> List[ChunkRecord]:
-        return (
+    def get_by_document_id(db: Session, document_id: int) -> List[ChunkRecordSchema]:
+        results = (
             db.query(ChunkRecord)
             .filter(ChunkRecord.document_id == document_id)
             .order_by(ChunkRecord.idx)
             .all()
         )
+        try:
+            records = [ChunkRecord(**r.__dict__) for r in results] if results else []
+            return [ChunkRecordCRUD.to_schema(r) for r in records] if results else []
+        except Exception:
+            return []
 
     @staticmethod
     def get_by_document_id_and_idx(

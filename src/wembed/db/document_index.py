@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class DocumentIndexRecord(Base):

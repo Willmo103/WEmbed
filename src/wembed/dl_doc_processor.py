@@ -2,10 +2,15 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import llm
 import typer
+from docling.document_converter import DocumentConverter
+from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
+from docling_core.types.doc.document import DoclingDocument
+
 from .config import app_config
 from .db import (
     ChunkRecordCRUD,
@@ -16,11 +21,6 @@ from .db import (
     InputRecordCRUD,
     get_session,
 )
-from docling.document_converter import DocumentConverter
-from docling_core.transforms.chunker.base import BaseChunk
-from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
-from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
-from docling_core.types.doc.document import DoclingDocument
 
 MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 
@@ -31,13 +31,12 @@ class DlDocProcessor:
     def __init__(self):
         self._embedder = llm.get_embedding_model(app_config.embed_model_name)
         self._tokenizer = HuggingFaceTokenizer.from_pretrained(
-            app_config.embed_model_id
+            app_config.embed_model_id, app_config.max_tokens
         )
         self._converter = DocumentConverter()
         self._headers = app_config.headers
         self._chunker = HybridChunker(
             tokenizer=self._tokenizer,
-            max_tokens=app_config.max_tokens,
         )
         self._collection = llm.Collection(
             name="chunk_embeddings",
@@ -340,7 +339,7 @@ doc_processor_cli = typer.Typer(
 @doc_processor_cli.command(name="convert", help="Convert a single source (URL or file)")
 def convert_source_command(
     source: str = typer.Argument(..., help="Source URL or file path to convert"),
-):
+) -> None:
     """Convert a single source to a DoclingDocument."""
     processor = DlDocProcessor()
     result = processor.convert_source(source)

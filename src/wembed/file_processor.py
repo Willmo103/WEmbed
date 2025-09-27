@@ -8,6 +8,7 @@ from typing import Generator, Optional
 from uuid import uuid4
 
 import typer
+
 from .config import app_config
 from .db import (
     DocumentIndexCRUD,

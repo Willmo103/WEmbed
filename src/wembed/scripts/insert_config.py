@@ -1,77 +1,49 @@
 import json
 from pathlib import Path
 
-from pydantic import BaseModel
-from sqlalchemy import Column, String, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 from sqlite_utils import Database
 
-from src.wembed.config import app_config
-from src.wembed.db._base import Base
+from wembed.config import app_config
+from wembed.db.base import Base
+from wembed.db.tables.ignore_ext_table import IgnoreExtTable
+from wembed.db.tables.ignore_parts_table import IgnorePartsTable
+from wembed.db.tables.md_xref_table import MdXrefTable
+
+_uri = app_config.app_db_uri
+_engine = create_engine(_uri)
+_session = Session(bind=_engine)
 
 
-class IgnoreExtTable(Base):
-    __tablename__ = "_dl_ignore_ext"
-    ext = Column(String, primary_key=True, index=True)
+def insert_default_configs():
 
+    ignore_ext = app_config.ignore_extensions
+    ignore_parts = app_config.ignore_parts
+    md_xref = app_config.md_xref
 
-class IgnoreExts(BaseModel):
-    ext: str
+    for key in md_xref:
+        md_ref = MdXrefTable(k=key, v=md_xref[key])
+        _session.add(md_ref)
+    _session.commit()
+    print(f"Inserted {len(md_xref.keys())} md_xref")
 
+    for ext in ignore_ext:
+        ext_rec = IgnoreExtTable(ext=ext)
+        _session.merge(ext_rec)
+    _session.commit()
+    print(f"Inserted {len(ignore_ext)} ignore_ext")
 
-class MdXrefTable(Base):
-    __tablename__ = "_dl_md_xref"
-    k = Column(String, primary_key=True, index=True)
-    v = Column(String, index=True)
+    for part in ignore_parts:
+        ignore_part = IgnorePartsTable(part=part)
+        _session.merge(ignore_part)
+    _session.commit()
+    print(f"Inserted {len(ignore_parts)} ignore_parts")
 
+    _session.close()
 
-class MarkdownXref(BaseModel):
-    k: str
-    v: str
-
-
-class IgnorePartsTable(Base):
-    __tablename__ = "_dl_ignore_parts"
-    part = Column(String, primary_key=True, index=True)
-
-
-engine = create_engine(
-    "sqlite:///" + str(Path(app_config.app_storage).joinpath("test_db.db"))
-)
-Base.metadata.create_all(bind=engine)
-
-
-class IgnoreParts(BaseModel):
-    part: str
-
-
-def insert_configs():
-
-    ignore_ext = app_config.app_storage / "ignore_ext.json"
-    ignore_parts = app_config.app_storage / "ignore_parts.json"
-    md_xref = app_config.app_storage / "md_xref.json"
-
-    db = Database(app_config.db_path)
-
-    exts = json.loads(ignore_ext.read_text()) if ignore_ext.exists() else []
-    parts = json.loads(ignore_parts.read_text()) if ignore_parts.exists() else []
-    xrefs = json.loads(md_xref.read_text()) if md_xref.exists() else []
-
-    for key in xrefs.keys():
-        xref = MarkdownXref(k=key, v=xrefs[key])
-        db["md_xref"].upsert(xref.model_dump(), pk="k")
-
-    for ext in exts:
-        ignore_ext = IgnoreExts(ext=ext)
-        db["ignore_ext"].upsert(ignore_ext.model_dump(), pk="ext")
-
-    for part in parts:
-        ignore_part = IgnoreParts(part=part)
-        db["ignore_parts"].upsert(ignore_part.model_dump(), pk="part")
-
-    print(
-        f"Inserted {len(exts)} ignore_ext, {len(parts)} ignore_parts, {len(xrefs)} md_xref"
-    )
+    print("Default configurations inserted successfully.")
 
 
 if __name__ == "__main__":
-    insert_configs()
+    insert_default_configs()

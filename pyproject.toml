@@ -3,7 +3,7 @@ name = "wembed"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13.5"
 dependencies = [
     "docling>=2.53.0",
     "llm>=0.27.1",
@@ -29,6 +29,7 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
+    "uv_build>=0.8.22,<0.9.0",
 ]
 
 [project.urls]
@@ -38,6 +39,12 @@ Issues = "https://github.com/Willmo103/WEmbed/issues"
 
 [project.scripts]
 cli = "wembed.cli:main"
+insert-configs = "wembed.scripts.insert_configs:main"
+db = "wembed.db:main"
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -127,6 +134,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+cache_dir = ".mypy_cache"
 
 [[tool.mypy.overrides]]
 module = [

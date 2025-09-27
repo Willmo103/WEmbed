@@ -2,11 +2,11 @@ from pathlib import Path
 
 import psycopg2
 import typer
-from ..config import app_config  # noqa
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from ._base import Base
+from ..config import app_config  # noqa
+from .base import Base
 from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
 from .document_index import DocumentIndexCRUD, DocumentIndexRecord, DocumentIndexSchema
 from .document_record import (
@@ -29,6 +29,14 @@ from .scan_result import (
     ScanResultList,
     ScanResultRecord,
     ScanResultSchema,
+)
+from .tables import (
+    IgnoreExtSchema,
+    IgnoreExtTable,
+    IgnorePartsSchema,
+    IgnorePartsTable,
+    MdXrefSchema,
+    MdXrefTable,
 )
 from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
 
@@ -64,7 +72,7 @@ def drop_models(uri: str) -> None:
         conn.execute(text(sql))
 
 
-def _init_db(uri: str, force: bool = False) -> tuple[bool, str]:
+def _init_db(uri: str, force: bool = False) -> tuple[bool, str] | None:
     global DB_INIT
     if not DB_INIT or force:
         try:
@@ -106,7 +114,7 @@ def get_session_remote(uri: str = _remote_uri) -> Session | None:
         return None
 
 
-def get_session() -> Session:
+def get_session() -> Session | None:
     try:
         _remote = get_session_remote()
         if _remote:
@@ -121,7 +129,7 @@ db_cli = typer.Typer(name="db", no_args_is_help=True, help="Database commands")
 
 
 @db_cli.command(name="test-db", help="Test Postgres DB connection")
-def test_db_command():
+def is_db_conn():
     if test_db_connection():
         print("Postgres DB connection successful.")
     else:
