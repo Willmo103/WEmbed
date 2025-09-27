@@ -11,7 +11,7 @@ import typer
 
 from .config import app_config
 from .db import (
-    DocumentIndexCRUD,
+    DocumentIndexRepo,
     DocumentIndexSchema,
     FileRecordCRUD,
     FileRecordSchema,
@@ -256,7 +256,7 @@ def process_vault_files() -> None:
                     file_id=file_record.id,
                     last_rendered=datetime.now(timezone.utc),
                 )
-                DocumentIndexCRUD.create(session, doc_index)
+                DocumentIndexRepo.create(session, doc_index)
 
                 # Add to input processing queue
                 input_record = InputRecordSchema(
@@ -339,7 +339,7 @@ def process_repo_files() -> None:
                     file_id=file_record.id,
                     last_rendered=datetime.now(timezone.utc),
                 )
-                DocumentIndexCRUD.create(session, doc_index)
+                DocumentIndexRepo.create(session, doc_index)
 
                 # Add to input processing queue
                 input_record = InputRecordSchema(

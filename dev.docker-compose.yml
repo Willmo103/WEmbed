@@ -1,0 +1,12 @@
+services:
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: wembed-admin-pass
+      POSTGRES_DB: wembed
+    ports:
+      - "5454:5432"
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+

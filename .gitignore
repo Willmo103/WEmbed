@@ -21,3 +21,5 @@ htmlcov/
 app_data
 htmlcov
 .dev*
+.mypy_cache/
+db_data/
