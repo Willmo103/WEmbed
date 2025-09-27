@@ -41,7 +41,7 @@ _md_xref_path = app_data_dir / "md_xref.json"
 _headers_path = app_data_dir / "headers.json"
 
 
-def init_config():
+def init_config() -> None:
     """Initialize configuration directories and files."""
     global IS_INITIALIZED
     if IS_INITIALIZED:
@@ -66,14 +66,14 @@ HEADERS_CONFIG: Path = _headers_path
 MAX_TOKENS: int = int(os.environ.get("MAX_TOKENS") or 2048)
 EMBEDDING_LENGTH: int = int(os.environ.get("EMBEDDING_LENGTH") or 768)
 EMBED_MODEL_HF_ID: str = (
-    os.environ.get("EMBED_MODEL_HF_ID", None) or "nomic-ai/nomic-embed-text-v1.5"
+    os.environ.get("EMBED_MODEL_HF_ID") or "nomic-ai/nomic-embed-text-v1.5"
 )
 EMBED_MODEL_NAME: str = os.environ.get("EMBED_MODEL_NAME", "nomic-embed-text")
 LOCAL_DB_URI: str = os.environ.get("LOCAL_DB_URI", f"sqlite:///{local_db_path}")
-HOST: str = os.environ.get("HOST", None) or os.getenv("COMPUTERNAME", None) or "unknown"
-USER: str = os.environ.get("USER", None) or os.getenv("USERNAME", None) or "unknown"
-SQLALCHEMY_DATABASE_URI: str = os.environ.get("SQLALCHEMY_DATABASE_URI", None)
-MAX_FILE_SIZE: int = os.environ.get("MAX_FILE_SIZE", None) or (3 * 1024 * 1024)  # 3 MB
+HOST: str = os.environ.get("HOST") or os.getenv("COMPUTERNAME") or "unknown"
+USER: str = os.environ.get("USER") or os.getenv("USERNAME") or "unknown"
+SQLALCHEMY_DATABASE_URI: str = os.environ.get("SQLALCHEMY_DATABASE_URI")
+MAX_FILE_SIZE: int = os.environ.get("MAX_FILE_SIZE") or (3 * 1024 * 1024)  # 3 MB
 
 VAULT_FOLDER = ".obsidian"
 VAULT_EXTENSIONS = {".md"}
@@ -131,12 +131,12 @@ config_cli = typer.Typer(
 )
 
 
-def ppconfig_conf():
+def ppconfig_conf() -> None:
     """Pretty print configuration as JSON."""
     print(app_config.model_dump_json(indent=4))
 
 
-def export_config(fp: str):
+def export_config(fp: str) -> None:
     """Export configuration to a JSON file."""
     fp = Path(fp).resolve() / "wembed_config.json"
     with open(fp, "w") as f:
@@ -148,7 +148,7 @@ def export_config(fp: str):
 
 
 @config_cli.command(name="show")
-def show_config():
+def show_config() -> None:
     """Show current configuration."""
     ppconfig_conf()
 
@@ -162,7 +162,7 @@ def export_config_command(
         exists=False,
         help="Directory to export config file to",
     )
-):
+) -> None:
     """Export configuration to specified directory."""
     export_config(fp)
 

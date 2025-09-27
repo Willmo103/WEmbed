@@ -40,6 +40,7 @@ Issues = "https://github.com/Willmo103/WEmbed/issues"
 [project.scripts]
 cli = "wembed.cli:main"
 insert-configs = "wembed.scripts.insert_configs:main"
+db = "wembed.db:main"
 
 [build-system]
 requires = ["uv_build>=0.8.22,<0.9.0"]

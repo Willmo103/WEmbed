@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Generator, Type
 
 from pydantic import BaseModel, computed_field
 from sqlalchemy import JSON, DateTime, Integer, String
@@ -41,8 +41,8 @@ class ScanResultSchema(BaseModel):
     user: str
     host: str
 
-    @computed_field
     @property
+    @computed_field
     def total_files(self) -> int:
         return len(self.files) if self.files else 0
 
@@ -53,10 +53,10 @@ class ScanResultSchema(BaseModel):
 class ScanResultList(BaseModel):
     results: List[ScanResultSchema]
 
-    def add_result(self, result: ScanResultSchema):
+    def add_result(self, result: ScanResultSchema) -> None:
         self.results.append(result)
 
-    def iter_results(self):
+    def iter_results(self) -> Generator[ScanResultSchema, None, None]:
         for result in self.results:
             yield result
 
@@ -87,24 +87,35 @@ class ScanResultCRUD:
         return db.query(ScanResultRecord).filter(ScanResultRecord.id == scan_id).first()
 
     @staticmethod
-    def get_by_root_path(db: Session, root_path: str) -> List[ScanResultRecord]:
-        return (
+    def get_by_root_path(db: Session, root_path: str) -> list[ScanResultSchema]:
+        results = (
             db.query(ScanResultRecord)
             .filter(ScanResultRecord.root_path == root_path)
             .all()
         )
+        try:
+            records = [ScanResultRecord(**r.__dict__) for r in results]
+            return [ScanResultCRUD.to_schema(record) for record in records] if results else []
 
     @staticmethod
-    def get_by_scan_type(db: Session, scan_type: str) -> List[ScanResultRecord]:
-        return (
-            db.query(ScanResultRecord)
+    def get_by_scan_type(db: Session, scan_type: str) -> List[ScanResultSchema]:
+        results = db.query (ScanResultRecord, db.query(ScanResultRecord)
             .filter(ScanResultRecord.scan_type == scan_type)
             .all()
         )
+        try:
+            return [ScanResultCRUD.to_schema(record[0]) for record in results] if results else []
+        except Exception:
+            return []
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[ScanResultRecord]:
-        return db.query(ScanResultRecord).offset(skip).limit(limit).all()
+    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[ScanResultSchema]:
+        results =  db.query(ScanResultRecord).offset(skip).limit(limit).all()
+        try:
+            records = [ScanResultRecord(**r.__dict__) for r in results]
+            return [ScanResultCRUD.to_schema(record) for record in records] if results else []
+        except Exception:
+            return []
 
     @staticmethod
     def update(
