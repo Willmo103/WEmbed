@@ -128,8 +128,22 @@ class StringContentOut(BaseModel):
 
 
 class DocumentRecordRepo:
+    """
+    Repository class for DocumentRecord entities.
+    Provides methods for creating, retrieving, updating, and deleting document records.
+    """
     @staticmethod
     def create(db: Session, document: DocumentRecordSchema) -> DocumentRecord:
+        """
+        Create a new document record in the database.
+
+        Args:
+            db (Session): The database session.
+            document (DocumentRecordSchema): The document data to create.
+
+        Returns:
+            DocumentRecord: The created document record.
+        """
         db_record = DocumentRecord(
             source=document.source,
             source_type=document.source_type,
@@ -150,14 +164,41 @@ class DocumentRecordRepo:
 
     @staticmethod
     def get_by_id(db: Session, doc_id: int) -> Optional[DocumentRecord]:
+        """
+        Retrieve a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to retrieve.
+        """
         return db.query(DocumentRecord).filter(DocumentRecord.id == doc_id).first()
 
     @staticmethod
     def get_by_source(db: Session, source: str) -> Optional[DocumentRecord]:
+        """
+        Retrieve a document by its source.
+
+        Args:
+            db (Session): The database session.
+            source (str): The source of the document to retrieve.
+
+        Returns:
+            Optional[DocumentRecord]: The document record if found, else None.
+        """
         return db.query(DocumentRecord).filter(DocumentRecord.source == source).first()
 
     @staticmethod
     def get_by_source_type(db: Session, source_type: str) -> List[DocumentRecordSchema]:
+        """
+        Retrieve documents by their source type.
+
+        Args:
+            db (Session): The database session.
+            source_type (str): The source type to filter by.
+
+        Returns:
+            List[DocumentRecordSchema]: A list of document record schemas.
+        """
         results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.source_type == source_type)
@@ -171,6 +212,16 @@ class DocumentRecordRepo:
 
     @staticmethod
     def get_by_source_ref(db: Session, source_ref: int) -> Optional[DocumentRecord]:
+        """
+        Retrieve a document by its source reference ID.
+
+        Args:
+            db (Session): The database session.
+            source_ref (int): The source reference ID to filter by.
+
+        Returns:
+            Optional[DocumentRecord]: The document record if found, else None.
+        """
         return (
             db.query(DocumentRecord)
             .filter(DocumentRecord.source_ref == source_ref)
@@ -179,6 +230,16 @@ class DocumentRecordRepo:
 
     @staticmethod
     def search_by_text(db: Session, search_text: str) -> List[DocumentRecordSchema]:
+        """
+        Search documents by text content.
+
+        Args:
+            db (Session): The database session.
+            search_text (str): The text to search for within document content.
+
+        Returns:
+            List[DocumentRecordSchema]: A list of document record schemas matching the search.
+        """
         results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.text.contains(search_text))
@@ -192,6 +253,16 @@ class DocumentRecordRepo:
 
     @staticmethod
     def search_by_markdown(db: Session, search_text: str) -> List[DocumentRecordSchema]:
+        """
+        Search documents by markdown content.
+
+        Args:
+            db (Session): The database session.
+            search_text (str): The text to search for within document markdown content.
+
+        Returns:
+            List[DocumentRecordSchema]: A list of document record schemas matching the search.
+        """
         results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.markdown.contains(search_text))
@@ -205,12 +276,34 @@ class DocumentRecordRepo:
 
     @staticmethod
     def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[DocumentRecord]:
+        """
+        Fetch all documents with pagination.
+
+        Args:
+            db (Session): The database session.
+            skip (int): Number of records to skip for pagination.
+            limit (int): Maximum number of records to return.
+
+        Returns:
+            List[DocumentRecord]: A list of document records.
+        """
         return db.query(DocumentRecord).offset(skip).limit(limit).all()
 
     @staticmethod
     def update(
         db: Session, doc_id: int, document: DocumentRecordSchema
     ) -> Optional[DocumentRecord]:
+        """
+        Update a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to update.
+            document (DocumentRecordSchema): The document data to update.
+
+        Returns:
+            Optional[DocumentRecord]: The updated document record, or None if not found.
+        """
         db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             update_data = document.model_dump(exclude_unset=True, exclude={"id"})
