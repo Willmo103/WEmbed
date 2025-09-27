@@ -6,7 +6,7 @@ from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..config import app_config  # noqa
-from ._base import Base
+from .base import Base
 from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
 from .document_index import DocumentIndexCRUD, DocumentIndexRecord, DocumentIndexSchema
 from .document_record import (
@@ -29,6 +29,14 @@ from .scan_result import (
     ScanResultList,
     ScanResultRecord,
     ScanResultSchema,
+)
+from .tables import (
+    IgnoreExtSchema,
+    IgnoreExtTable,
+    IgnorePartsSchema,
+    IgnorePartsTable,
+    MdXrefSchema,
+    MdXrefTable,
 )
 from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
 

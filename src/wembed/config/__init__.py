@@ -16,15 +16,15 @@ from .md_xref import MD_XREF
 IS_INITIALIZED = False
 
 # Path determination logic from constants.py
-_root_dir = Path(__file__).resolve().parent.parent.parent
-_app_data_dir = _root_dir.parent / "data"
+app_root_dir = Path(__file__).resolve().parent.parent.parent
+_app_data_dir = app_root_dir.parent / "data"
 
 # Get storage path from environment or use default
-_storage = os.getenv("APP_STORAGE", _app_data_dir)
-_app_data_dir = Path(_storage).resolve() if _storage else Path(_app_data_dir).resolve()
+_storage = os.getenv("APP_STORAGE", None)
+app_data_dir = Path(_storage).resolve() if _storage else Path(_app_data_dir).resolve()
 
 # .env file path resolution
-_app_dotenv = _root_dir.parent / ".env"
+_app_dotenv = app_root_dir.parent / ".env"
 
 # Load environment variables from .env file
 load_dotenv(_app_dotenv)
@@ -33,12 +33,12 @@ load_dotenv(_app_dotenv)
 os.environ["OLLAMA_HOST"] = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 # Setup paths
-local_db_path = _app_data_dir / "local.db"
-_md_vault = _app_data_dir / "md_vault"
-_ignore_parts_path = _app_data_dir / "ignore_parts.json"
-_ignore_ext_path = _app_data_dir / "ignore_ext.json"
-_md_xref_path = _app_data_dir / "md_xref.json"
-_headers_path = _app_data_dir / "headers.json"
+local_db_path = app_data_dir / "local.db"
+_md_vault = app_data_dir / "md_vault"
+_ignore_parts_path = app_data_dir / "ignore_parts.json"
+_ignore_ext_path = app_data_dir / "ignore_ext.json"
+_md_xref_path = app_data_dir / "md_xref.json"
+_headers_path = app_data_dir / "headers.json"
 
 
 def init_config():
@@ -46,7 +46,7 @@ def init_config():
     global IS_INITIALIZED
     if IS_INITIALIZED:
         return
-    Path(_app_data_dir).mkdir(parents=True, exist_ok=True)
+    Path(app_data_dir).mkdir(parents=True, exist_ok=True)
     Path(_app_dotenv).touch(exist_ok=True)
     Path(local_db_path).touch(exist_ok=True)
     Path(_headers_path).touch(exist_ok=True)
@@ -57,15 +57,17 @@ if not IS_INITIALIZED:
     init_config()
 
 # Constants
-STORAGE: Path = _app_data_dir
+STORAGE: Path = app_data_dir
 MD_VAULT: Path = _md_vault
 IGNORE_PARTS_CONFIG: Path = _ignore_parts_path
 IGNORE_EXTENSIONS_CONFIG: Path = _ignore_ext_path
 MD_XREF_CONFIG: Path = _md_xref_path
 HEADERS_CONFIG: Path = _headers_path
-MAX_TOKENS: int = os.environ.get("MAX_TOKENS", None) or 2048
-EMBEDDING_LENGTH: int = os.environ.get("EMBEDDING_LENGTH", None) or 768
-EMBED_MODEL_HF_ID: str = os.environ.get("EMBED_MODEL_HF_ID", None) or "nomic-ai/nomic-embed-text-v1.5"
+MAX_TOKENS: int = int(os.environ.get("MAX_TOKENS") or 2048)
+EMBEDDING_LENGTH: int = int(os.environ.get("EMBEDDING_LENGTH") or 768)
+EMBED_MODEL_HF_ID: str = (
+    os.environ.get("EMBED_MODEL_HF_ID", None) or "nomic-ai/nomic-embed-text-v1.5"
+)
 EMBED_MODEL_NAME: str = os.environ.get("EMBED_MODEL_NAME", "nomic-embed-text")
 LOCAL_DB_URI: str = os.environ.get("LOCAL_DB_URI", f"sqlite:///{local_db_path}")
 HOST: str = os.environ.get("HOST", None) or os.getenv("COMPUTERNAME", None) or "unknown"
@@ -184,6 +186,7 @@ __all__ = [
     "IGNORE_EXTENSIONS",
     "MD_XREF",
     "IS_INITIALIZED",
+    "app_root_dir",
 ]
 
 

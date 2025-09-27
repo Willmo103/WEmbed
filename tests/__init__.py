@@ -1,5 +1,5 @@
 # flake8: noqa F401
-from src.wembed import (
+from wembed import (
     EMBEDDING_LENGTH,
     LOCAL_DB_URI,
     MAX_TOKENS,
@@ -9,8 +9,8 @@ from src.wembed import (
     app_config,
     config_cli,
 )
-from src.wembed import db as db_module
-from src.wembed import (
+from wembed import db as db_module
+from wembed import (
     export_config,
     init_config,
     ppconfig_conf,

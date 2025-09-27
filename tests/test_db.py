@@ -8,8 +8,8 @@ from sqlalchemy import Column, Integer, String
 
 # Assuming your project structure allows this import.
 # This is simpler and more direct than using importlib.
-from src.wembed import db as wdb
-from src.wembed.db import Base
+from wembed import db as wdb
+from wembed.db import Base
 
 
 class SampleModel(Base):

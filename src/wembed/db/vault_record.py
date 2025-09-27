@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import JSON, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class VaultRecord(Base):

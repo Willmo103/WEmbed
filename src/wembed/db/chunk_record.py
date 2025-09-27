@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class ChunkRecord(Base):

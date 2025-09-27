@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, computed_field
 from sqlalchemy import DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class FileRecord(Base):

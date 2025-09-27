@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, Json
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ._base import Base
+from .base import Base
 
 
 class DocumentRecord(Base):
@@ -42,7 +42,7 @@ class DocumentRecordSchema(BaseModel):
     source: str
     source_type: str
     source_ref: Optional[int] = None
-    dl_doc: Optional[Json[DoclingDocument]] = None
+    dl_doc: Optional[Json[DoclingDocument] | str] = None
     markdown: Optional[str] = None
     html: Optional[str] = None
     text: Optional[str] = None
