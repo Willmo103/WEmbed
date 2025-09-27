@@ -11,7 +11,7 @@ from .config import app_config
 from .db import (
     RepoRecordCRUD,
     RepoRecordSchema,
-    ScanResultCRUD,
+    ScanResult_Controller,
     ScanResultSchema,
     VaultRecordCRUD,
     VaultRecordSchema,
@@ -149,7 +149,7 @@ def store_scan_results(scan_results: list[ScanResultSchema]) -> None:
     session = get_session()
     try:
         for result in scan_results:
-            ScanResultCRUD.create(session, result)
+            ScanResult_Controller.create(session, result)
         typer.echo(f"Stored {len(scan_results)} scan results.")
     except Exception as e:
         typer.secho(f"Error storing scan results: {e}", fg=typer.colors.RED)

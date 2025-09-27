@@ -100,16 +100,36 @@ class ChunkRecordCRUD:
         )
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[ChunkRecord]:
-        return db.query(ChunkRecord).offset(skip).limit(limit).all()
+    def get_all(
+        db: Session, skip: int = 0, limit: int = 100
+    ) -> List[ChunkRecordSchema]:
+        _results = db.query(ChunkRecord).offset(skip).limit(limit).all()
+        try:
+            records = [ChunkRecord(**r.__dict__) for r in _results]
+            return (
+                [ChunkRecordCRUD.to_schema(record) for record in records]
+                if _results
+                else []
+            )
+        except Exception:
+            return []
 
     @staticmethod
-    def search_by_text(db: Session, search_text: str) -> List[ChunkRecord]:
-        return (
+    def search_by_text(db: Session, search_text: str) -> List[ChunkRecordSchema]:
+        _results = (
             db.query(ChunkRecord)
             .filter(ChunkRecord.text_chunk.contains(search_text))
             .all()
         )
+        try:
+            records = [ChunkRecord(**r.__dict__) for r in _results]
+            return (
+                [ChunkRecordCRUD.to_schema(record) for record in records]
+                if records
+                else []
+            )
+        except Exception:
+            return []
 
     @staticmethod
     def update(

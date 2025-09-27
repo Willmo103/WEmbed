@@ -25,7 +25,7 @@ from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
 
 # Import all record models and their CRUD operations
 from .scan_result import (
-    ScanResultCRUD,
+    ScanResult_Controller,
     ScanResultList,
     ScanResultRecord,
     ScanResultSchema,
@@ -205,7 +205,7 @@ __all__ = [
     "ScanResultRecord",
     "ScanResultSchema",
     "ScanResultList",
-    "ScanResultCRUD",
+    "ScanResult_Controller",
     # Vault Record
     "VaultRecord",
     "VaultRecordSchema",

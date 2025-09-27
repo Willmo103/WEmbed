@@ -251,12 +251,12 @@ class DlDocProcessor:
                 input_record_db = InputRecordCRUD.get_by_file_id(
                     session, file_record_id
                 )
-                input_record_id = input_record_db.id if input_record_db else None
+                input_record_id = int(input_record_db.id) if input_record_db else None
 
                 # Convert the markdown file
                 result = self.convert_source(str(temp_md_path), input_record_id)
                 if result:
-                    InputRecordCRUD.mark_processed(session, input_record_db.id)
+                    InputRecordCRUD.mark_processed(session, input_record_id, result)
                 return result
 
             finally:

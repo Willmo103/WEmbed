@@ -1,13 +1,8 @@
 from unittest import mock
 
 import pytest
-
-# To make the integration test runnable, we need a simple SQLAlchemy model.
-# If you have existing models in your project, you can import and use one of them instead.
 from sqlalchemy import Column, Integer, String
 
-# Assuming your project structure allows this import.
-# This is simpler and more direct than using importlib.
 from wembed import db as wdb
 from wembed.db import Base
 
@@ -18,11 +13,6 @@ class SampleModel(Base):
     __tablename__ = "sample_table"
     id = Column(Integer, primary_key=True)
     name = Column(String)
-
-
-# --- Unit Tests for Session Selection Logic ---
-# These tests use mocking to verify the correctness of the session fallback logic
-# without needing a real database connection. They are fast and test one specific thing.
 
 
 class TestSessionSelectionLogic:
@@ -95,11 +85,6 @@ class TestSessionSelectionLogic:
         ), "Should have fallen back to local after remote raised an exception"
 
 
-# --- Integration Tests for Database Functionality ---
-# These tests connect to a REAL (but temporary) database to ensure
-# that the session handling, model creation, and transactions work correctly.
-
-
 class TestDatabaseIntegration:
     """
     Tests the actual database interaction with a temporary in-memory DB.
@@ -114,25 +99,14 @@ class TestDatabaseIntegration:
         """
         from sqlalchemy import create_engine
 
-        # Create an in-memory SQLite database engine just for this test
         engine = create_engine("sqlite:///:memory:")
-
-        # Create all tables defined by models that inherit from your Base
         Base.metadata.create_all(engine)
-
-        # FIX: Instead of patching a non-existent internal variable, we patch the
-        # function responsible for creating the engine. Now, any call to get_session_local()
-        # will use our temporary in-memory engine.
         monkeypatch.setattr(wdb, "_get_engine", lambda uri: engine)
-
-        # get_session_local will now use the patched _get_engine
         session = wdb.get_session_local()
 
         try:
             yield session
         finally:
-            # This is the crucial cleanup step!
-            # It closes the session and releases the connection, preventing ResourceWarning.
             session.close()
 
     def test_local_session_can_read_and_write(self, temp_db_session):
@@ -143,7 +117,6 @@ class TestDatabaseIntegration:
         3. Data can be written and committed.
         4. The same data can be read back.
         """
-        # `temp_db_session` is our active, temporary session from the fixture
         session = temp_db_session
 
         # 1. Create a new object and add it to the session
