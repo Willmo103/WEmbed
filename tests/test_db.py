@@ -7,7 +7,7 @@ from wembed import db as wdb
 from wembed.db import Base
 
 
-class SampleModel(Base):
+class SampleModel(Base) -> None:
     """A simple model for testing database operations."""
 
     __tablename__ = "sample_table"
@@ -20,7 +20,7 @@ class TestSessionSelectionLogic:
     Tests the logic of get_session() using mocks to isolate it from the database.
     """
 
-    def test_get_session_prefers_remote_when_available(self, monkeypatch):
+    def test_get_session_prefers_remote_when_available(self, monkeypatch) -> None:
         """
         Ensures that if a remote session is available, it is returned.
         """
@@ -36,7 +36,7 @@ class TestSessionSelectionLogic:
             result is sentinel_remote
         ), "Should have returned the remote session object"
 
-    def test_get_session_returns_none_when_remote_is_none(self, monkeypatch):
+    def test_get_session_returns_none_when_remote_is_none(self, monkeypatch) -> None:
         """
         Tests the current behavior where get_session returns None if the remote
         session is None and no exception was raised.
@@ -65,13 +65,13 @@ class TestSessionSelectionLogic:
 
     def test_get_session_falls_back_to_local_when_remote_raises_exception(
         self, monkeypatch
-    ):
+    ) -> None:
         """
         Ensures that if get_session_remote() raises an error, it is caught
         and the system falls back to the local session.
         """
 
-        def failing_remote():
+        def failing_remote() -> None:
             raise RuntimeError("Database connection failed")
 
         sentinel_local = object()
@@ -91,7 +91,7 @@ class TestDatabaseIntegration:
     """
 
     @pytest.fixture(scope="function")
-    def temp_db_session(self, monkeypatch):
+    def temp_db_session(self, monkeypatch) -> None:
         """
         A fixture that provides a fully functional, temporary in-memory SQLite session.
         It handles setup (engine, tables) and teardown (closing the session).
@@ -109,7 +109,7 @@ class TestDatabaseIntegration:
         finally:
             session.close()
 
-    def test_local_session_can_read_and_write(self, temp_db_session):
+    def test_local_session_can_read_and_write(self, temp_db_session) -> None:
         """
         This is an end-to-end test for the local DB session. It verifies:
         1. A session can be obtained from our temporary DB.
@@ -117,7 +117,7 @@ class TestDatabaseIntegration:
         3. Data can be written and committed.
         4. The same data can be read back.
         """
-        session = temp_db_session
+        session = temp_db_session()
 
         # 1. Create a new object and add it to the session
         new_item = SampleModel(name="test_item")
@@ -133,7 +133,7 @@ class TestDatabaseIntegration:
         assert retrieved_item.name == "test_item"
         assert retrieved_item.id is not None  # Should have an auto-generated ID
 
-    def test_module_structure_and_exports(self):
+    def test_module_structure_and_exports(self) -> None:
         """
         Tests that the db module has the expected public API.
         """

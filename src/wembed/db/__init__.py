@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from ..config import app_config  # noqa
 from .base import Base
 from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
-from .document_index import DocumentIndexCRUD, DocumentIndexRecord, DocumentIndexSchema
+from .document_index import DocumentIndexRepo, DocumentIndexRecord, DocumentIndexSchema
 from .document_record import (
     ChunkList,
     ChunkModel,
@@ -217,7 +217,7 @@ __all__ = [
     # Document Index
     "DocumentIndexRecord",
     "DocumentIndexSchema",
-    "DocumentIndexCRUD",
+    "DocumentIndexRepo",
     # Input Record
     "InputRecord",
     "InputRecordSchema",
