@@ -25,6 +25,7 @@ class ScanResultRecord(Base):
     - user (str): The user who initiated the scan.
     - host (str): The host where the scan was performed.
     """
+
     __tablename__ = "dl_scan_results"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, unique=True, index=True)
@@ -64,6 +65,7 @@ class ScanResultSchema(BaseModel):
 
     class Config:
         """Pydantic configuration to allow ORM mode."""
+
         from_attributes = True
 
 
@@ -106,6 +108,7 @@ class ScanResult_Controller:
     - delete: Delete a scan result by its ID.
     - to_schema: Convert a ScanResultRecord to a ScanResultSchema.
     """
+
     @staticmethod
     def create(db: Session, scan_result: ScanResultSchema) -> ScanResultRecord:
         db_record = ScanResultRecord(

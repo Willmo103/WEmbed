@@ -11,6 +11,23 @@ from .base import Base
 
 
 class DocumentRecord(Base):
+    """
+    SQLAlchemy model for documents.
+    Attributes:
+    - id (int): Unique identifier for the document.
+    - source (str): The source of the document (e.g., file path, URL).
+    - source_type (str): The type of the source (e.g., 'file', 'url').
+    - source_ref (Optional[int]): Reference ID to another related entity (e.g., input ID).
+    - dl_doc (Optional[str]): The original document content in string format.
+    - markdown (Optional[str]): The document content in markdown format.
+    - html (Optional[str]): The document content in HTML format.
+    - text (Optional[str]): The plain text content of the document.
+    - doctags (Optional[str]): Any tags associated with the document.
+    - chunks_json (Optional[List[BaseChunk]]): List of chunks derived from the document.
+    - created_at (datetime): Timestamp when the document was created.
+    - updated_at (Optional[datetime]): Timestamp when the document was last updated.
+    """
+
     __tablename__ = "dl_documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -52,6 +69,8 @@ class DocumentRecordSchema(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -61,6 +80,8 @@ class ChunkModel(BaseModel):
     embedding: List[float]
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -68,6 +89,8 @@ class ChunkList(BaseModel):
     chunks: List[ChunkModel]
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -86,6 +109,8 @@ class DocumentOut(BaseModel):
     updated_at: Optional[str] = None
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -97,6 +122,8 @@ class StringContentOut(BaseModel):
     content: Optional[str] = None
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -130,12 +157,17 @@ class DocumentRecordCRUD:
         return db.query(DocumentRecord).filter(DocumentRecord.source == source).first()
 
     @staticmethod
-    def get_by_source_type(db: Session, source_type: str) -> List[DocumentRecord]:
-        return (
+    def get_by_source_type(db: Session, source_type: str) -> List[DocumentRecordSchema]:
+        results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.source_type == source_type)
             .all()
         )
+        try:
+            records = [DocumentRecord(**r.__dict__) for r in results]
+            return [DocumentRecordCRUD.to_schema(record) for record in records]
+        except Exception:
+            return []
 
     @staticmethod
     def get_by_source_ref(db: Session, source_ref: int) -> Optional[DocumentRecord]:
@@ -146,20 +178,30 @@ class DocumentRecordCRUD:
         )
 
     @staticmethod
-    def search_by_text(db: Session, search_text: str) -> List[DocumentRecord]:
-        return (
+    def search_by_text(db: Session, search_text: str) -> List[DocumentRecordSchema]:
+        results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.text.contains(search_text))
             .all()
         )
+        try:
+            records = [DocumentRecord(**r.__dict__) for r in results]
+            return [DocumentRecordCRUD.to_schema(record) for record in records]
+        except Exception:
+            return []
 
     @staticmethod
-    def search_by_markdown(db: Session, search_text: str) -> List[DocumentRecord]:
-        return (
+    def search_by_markdown(db: Session, search_text: str) -> List[DocumentRecordSchema]:
+        results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.markdown.contains(search_text))
             .all()
         )
+        try:
+            records = [DocumentRecord(**r.__dict__) for r in results]
+            return [DocumentRecordCRUD.to_schema(record) for record in records]
+        except Exception:
+            return []
 
     @staticmethod
     def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[DocumentRecord]:
@@ -191,6 +233,18 @@ class DocumentRecordCRUD:
         markdown: Optional[str] = None,
         html: Optional[str] = None,
     ) -> Optional[DocumentRecord]:
+        """
+        Update the text content of the document by itsID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to update.
+            text (str): The new text content.
+            markdown (Optional[str]): The new markdown content, if any.
+            html (Optional[str]): The new HTML content, if any.
+        Returns:
+            Optional[DocumentRecord]: The updated document record, or None if not found.
+        """
         db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
         if db_record:
             db_record.text = text
@@ -207,6 +261,17 @@ class DocumentRecordCRUD:
     def update_chunks(
         db: Session, doc_id: int, chunks_json: str
     ) -> Optional[DocumentRecord]:
+        """
+        Update the chunks_json field of a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to update.
+            chunks_json (str): The new chunks JSON data.
+
+        Returns:
+            Optional[DocumentRecord]: The updated document record, or None if not found.
+        """
         db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
         if db_record:
             db_record.chunks_json = chunks_json
@@ -217,6 +282,16 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def delete(db: Session, doc_id: int) -> bool:
+        """
+        Delete a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to delete.
+
+        Returns:
+            bool: True if the record was deleted, False if not found.
+        """
         db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
         if db_record:
             db.delete(db_record)
@@ -226,6 +301,15 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def to_schema(record: DocumentRecord) -> DocumentRecordSchema:
+        """
+        Convert a DocumentRecord to a DocumentRecordSchema.
+
+        Args:
+            record (DocumentRecord): The database record to convert.
+
+        Returns:
+            DocumentRecordSchema: A pydantic schema representation of the record.
+        """
         return DocumentRecordSchema(
             id=record.id,
             source=record.source,
@@ -243,6 +327,15 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def to_document_out(record: DocumentRecord) -> DocumentOut:
+        """
+        Convert a DocumentRecord to a DocumentOut schema.
+
+        Args:
+            record (DocumentRecord): The database record to convert.
+
+        Returns:
+            DocumentOut: A pydantic schema representation of the record.
+        """
         return DocumentOut(
             id=record.id,
             source=record.source,
