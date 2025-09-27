@@ -14,7 +14,7 @@ from .document_record import (
     ChunkModel,
     DocumentOut,
     DocumentRecord,
-    DocumentRecordCRUD,
+    DocumentRecordRepo,
     DocumentRecordSchema,
     StringContentOut,
 )
@@ -239,7 +239,7 @@ __all__ = [
     "ChunkList",
     "DocumentOut",
     "StringContentOut",
-    "DocumentRecordCRUD",
+    "DocumentRecordRepo",
     # File Line
     "FileLineRecord",
     "FileLineSchema",
