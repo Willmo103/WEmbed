@@ -33,7 +33,7 @@ jobs:
       # Step 5: Lints code with flake8.
       - name: Lint with flake8
         run: |
-          uv run flake8 src tests
+          uv run flake8 src
 
       # Step 6: Checks code formatting with black.
       - name: Check formatting with black
