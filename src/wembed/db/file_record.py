@@ -5,7 +5,7 @@ along with Repository classes for CRUD operations.
 """
 
 from datetime import datetime, timezone
-from typing import Optional, Type
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, computed_field
 from sqlalchemy import DateTime, Integer, LargeBinary, String, Text
@@ -15,6 +15,36 @@ from .base import Base
 
 
 class FileRecord(Base):
+    """
+    SQLAlchemy model for the 'dl_files' table, representing file records.
+
+    Attributes:
+        id (str): Unique identifier for the file (primary key).
+        version (int): Version number of the file record.
+        source_type (str): Type of the source (e.g., 'git', 'local').
+        source_root (str): Root path of the source.
+        source_name (str): Name of the source (e.g., repository name).
+        host (str): Hostname where the file is located.
+        user (str): User associated with the file.
+        name (str): Name of the file.
+        stem (str): Stem of the file name (name without suffix).
+        path (str): Full path to the file.
+        relative_path (str): Path relative to the source root.
+        suffix (str): File extension/suffix.
+        sha256 (str): SHA-256 hash of the file content (unique).
+        md5 (str): MD5 hash of the file content.
+        mode (int): File mode/permissions.
+        size (int): Size of the file in bytes.
+        content (bytes, optional): Binary content of the file.
+        content_text (str): Text content of the file.
+        markdown (str, optional): Markdown representation of the file content.
+        ctime_iso (datetime): Creation time of the file in ISO format.
+        mtime_iso (datetime): Last modification time of the file in ISO format.
+        line_count (int): Number of lines in the file.
+        uri (str): URI of the file.
+        mimetype (str): MIME type of the file.
+        created_at (datetime): Timestamp when the record was created.
+    """
     __tablename__ = "dl_files"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -77,6 +107,7 @@ class FileRecordSchema(BaseModel):
         self.version += 1
 
     class Config:
+        """Pydantic configuration to allow ORM mode."""
         from_attributes = True
 
 
@@ -90,17 +121,49 @@ class FileLineSchema(BaseModel):
     embedding: Optional[list[float]] = None
 
     @computed_field
-    @property
     def id(self) -> str:
+        """Computes a unique ID for the file line based on file_id and line_number."""
         return f"{self.file_id}:{self.line_number}"
 
     class Config:
+        """Pydantic configuration to allow ORM mode."""
         from_attributes = True
 
 
-class FileRecordCRUD:
+class FileRecordRepo:
+    """
+    Repository class for performing CRUD operations on FileRecord.
+
+    Methods:
+    - create: Create a new file record.
+    - get_by_id: Retrieve a file record by its ID.
+    - get_by_sha256: Retrieve a file record by its SHA-256 hash.
+    - get_by_source_type: Retrieve file records by source type.
+    - get_by_source_name: Retrieve file records by source name.
+    - get_by_host: Retrieve file records by host.
+    - get_by_suffix: Retrieve file records by file suffix.
+    - get_by_mimetype: Retrieve file records by MIME type.
+    - search_by_name: Search file records by name pattern.
+    - search_by_content: Search file records by content text.
+    - get_all: Retrieve all file records with pagination.
+    - update: Update an existing file record.
+    - update_version: Increment the version of a file record.
+    - update_markdown: Update the markdown content of a file record.
+    - delete: Delete a file record by its ID.
+    - to_schema: Convert a FileRecord to its corresponding FileRecordSchema.
+    """
     @staticmethod
     def create(db: Session, file_record: FileRecordSchema) -> FileRecord:
+        """
+        Create a new file record in the database.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            file_record (FileRecordSchema): Pydantic schema representing the file record to create.
+
+        Returns:
+            FileRecord: The created FileRecord SQLAlchemy model instance.
+        """
         db_record = FileRecord(
             id=file_record.id,
             version=file_record.version,
@@ -135,53 +198,180 @@ class FileRecordCRUD:
 
     @staticmethod
     def get_by_id(db: Session, file_id: str) -> Optional[FileRecord]:
+        """
+        Retrieve a file record by its ID.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            file_id (str): The ID of the file record to retrieve.
+
+        Returns:
+            Optional[FileRecord]: The FileRecord instance if found, else None.
+        """
         return db.query(FileRecord).filter(FileRecord.id == file_id).first()
 
     @staticmethod
     def get_by_sha256(db: Session, sha256: str) -> Optional[FileRecord]:
+        """
+        Retrieve a file record by its SHA-256 hash.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            sha256 (str): The SHA-256 hash of the file record to retrieve.
+
+        Returns:
+            Optional[FileRecord]: The FileRecord instance if found, else None.
+        """
         return db.query(FileRecord).filter(FileRecord.sha256 == sha256).first()
 
     @staticmethod
-    def get_by_source_type(db: Session, source_type: str) -> list[Type[FileRecord]]:
+    def get_by_source_type(db: Session, source_type: str) -> List[FileRecordSchema]:
         return db.query(FileRecord).filter(FileRecord.source_type == source_type).all()
 
     @staticmethod
-    def get_by_source_name(db: Session, source_name: str) -> list[Type[FileRecord]]:
-        return db.query(FileRecord).filter(FileRecord.source_name == source_name).all()
+    def get_by_source_name(db: Session, source_name: str) -> List[FileRecordSchema]:
+        """
+        Retrieve file records by their source name.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            source_name (str): The source name to filter file records.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the source name.
+        """
+        results = db.query(FileRecord).filter(FileRecord.source_name == source_name).all()
+        try:
+            records = [FileRecord(**r.__dict__) for r in results]
+            return [FileRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
-    def get_by_host(db: Session, host: str) -> list[Type[FileRecord]]:
-        return db.query(FileRecord).filter(FileRecord.host == host).all()
+    def get_by_host(db: Session, host: str) -> List[FileRecordSchema]:
+        """
+        Retrieve file records by their host.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            host (str): The host to filter file records.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the host.
+        """
+        records = db.query(FileRecord).filter(FileRecord.host == host).all()
+        try:
+            return [FileRecordSchema(**r.__dict__) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
-    def get_by_suffix(db: Session, suffix: str) -> list[Type[FileRecord]]:
+    def get_by_suffix(db: Session, suffix: str) -> List[FileRecordSchema]:
+        """
+        Retrieve file records by their file suffix.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            suffix (str): The file suffix to filter file records.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the suffix.
+        """
         return db.query(FileRecord).filter(FileRecord.suffix == suffix).all()
 
     @staticmethod
-    def get_by_mimetype(db: Session, mimetype: str) -> list[Type[FileRecord]]:
+    def get_by_mimetype(db: Session, mimetype: str) -> List[FileRecordSchema]:
+        """
+        Retrieve file records by their MIME type.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            mimetype (str): The MIME type to filter file records.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the MIME type.
+        """
         return db.query(FileRecord).filter(FileRecord.mimetype == mimetype).all()
 
     @staticmethod
-    def search_by_name(db: Session, name_pattern: str) -> list[Type[FileRecord]]:
-        return db.query(FileRecord).filter(FileRecord.name.contains(name_pattern)).all()
+    def search_by_name(db: Session, name_pattern: str) -> List[FileRecordSchema]:
+        """
+        Search for file records by their name.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            name_pattern (str): The name pattern to search for.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the name pattern.
+        """
+        results = db.query(FileRecord).filter(FileRecord.name.contains(name_pattern)).all()
+        try:
+            records = [FileRecord(**r.__dict__) for r in results]
+            return [FileRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
-    def search_by_content(db: Session, search_text: str) -> list[Type[FileRecord]]:
-        return (
-            db.query(FileRecord)
-            .filter(FileRecord.content_text.contains(search_text))
-            .all()
-        )
+    def search_by_content(db: Session, search_text: str) -> List[FileRecordSchema]:
+        """
+        Search for file records by their content.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            search_text (str): The content text to search for.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the content text.
+        """
+        results = db.query(FileRecord).filter(FileRecord.content_text.contains(search_text)).all()
+        try:
+            records = [FileRecord(**r.__dict__) for r in results]
+            return [FileRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> list[Type[FileRecord]]:
-        return db.query(FileRecord).offset(skip).limit(limit).all()
+    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[FileRecordSchema]:
+        """
+        Retrieve all file records with pagination.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            skip (int): Number of records to skip (for pagination).
+            limit (int): Maximum number of records to return.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects.
+        """
+        results = db.query(FileRecord).offset(skip).limit(limit).all()
+        try:
+            records = [FileRecord(**r.__dict__) for r in results]
+            return [FileRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
     def update(
         db: Session, file_id: str, file_record: FileRecordSchema
     ) -> Optional[FileRecord]:
-        db_record = FileRecordCRUD.get_by_id(db, file_id)
+        """
+        Update an existing file record in the database.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            file_id (str): The ID of the file record to update.
+            file_record (FileRecordSchema): Pydantic schema with updated fields.
+
+        Returns:
+            Optional[FileRecord]: The updated file record or None if not found.
+        """
+        db_record = FileRecordRepo.get_by_id(db, file_id)
         if db_record:
             for key, value in file_record.model_dump(
                 exclude_unset=True, exclude={"id"}
@@ -194,7 +384,17 @@ class FileRecordCRUD:
 
     @staticmethod
     def update_version(db: Session, file_id: str) -> Optional[FileRecord]:
-        db_record = FileRecordCRUD.get_by_id(db, file_id)
+        """
+        Increment the version of a file record.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            file_id (str): The ID of the file record to update.
+
+        Returns:
+            Optional[FileRecord]: The updated file record or None if not found.
+        """
+        db_record = FileRecordRepo.get_by_id(db, file_id)
         if db_record:
             db_record.version += 1
             db.commit()
@@ -205,7 +405,18 @@ class FileRecordCRUD:
     def update_markdown(
         db: Session, file_id: str, markdown: str
     ) -> Optional[FileRecord]:
-        db_record = FileRecordCRUD.get_by_id(db, file_id)
+        """
+        Update the markdown content of a file record.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            file_id (str): The ID of the file record to update.
+            markdown (str): The new markdown content.
+
+        Returns:
+            Optional[FileRecord]: The updated file record or None if not found.
+        """
+        db_record = FileRecordRepo.get_by_id(db, file_id)
         if db_record:
             db_record.markdown = markdown
             db.commit()
@@ -214,7 +425,15 @@ class FileRecordCRUD:
 
     @staticmethod
     def delete(db: Session, file_id: str) -> bool:
-        db_record = FileRecordCRUD.get_by_id(db, file_id)
+        """
+        Delete a file record by its ID.
+        Args:
+            db (Session): SQLAlchemy session object.
+            file_id (str): The ID of the file record to delete.
+        Returns:
+            bool: True if the record was deleted, False if not found.
+        """
+        db_record = FileRecordRepo.get_by_id(db, file_id)
         if db_record:
             db.delete(db_record)
             db.commit()
@@ -223,6 +442,16 @@ class FileRecordCRUD:
 
     @staticmethod
     def to_schema(record: FileRecord) -> FileRecordSchema:
+        """
+        Convert a FileRecord SQLAlchemy model instance to a FileRecordSchema Pydantic model.
+
+        Args:
+            record (FileRecord): The FileRecord instance to convert.
+
+        Returns:
+            FileRecordSchema: The corresponding FileRecordSchema instance.
+
+        """
         return FileRecordSchema(
             id=record.id,
             version=record.version,

@@ -17,7 +17,7 @@ from .db import (
     ChunkRecordSchema,
     DocumentRecordRepo,
     DocumentRecordSchema,
-    FileRecordCRUD,
+    FileRecordRepo,
     InputRecordRepo,
     get_session,
 )
@@ -216,7 +216,7 @@ class DlDocProcessor:
 
         try:
             # Get file record
-            file_record_db = FileRecordCRUD.get_by_id(session, file_record_id)
+            file_record_db = FileRecordRepo.get_by_id(session, file_record_id)
             if not file_record_db:
                 typer.secho(
                     f"File record {file_record_id} not found",
@@ -224,7 +224,7 @@ class DlDocProcessor:
                 )
                 return None
 
-            file_record = FileRecordCRUD.to_schema(file_record_db)
+            file_record = FileRecordRepo.to_schema(file_record_db)
 
             # Check if we have markdown content
             if not file_record.markdown:

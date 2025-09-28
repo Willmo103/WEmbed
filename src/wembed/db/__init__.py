@@ -19,7 +19,7 @@ from .document_record import (
     StringContentOut,
 )
 from .file_line import FileLineRecord, FileLineRepo
-from .file_record import FileLineSchema, FileRecord, FileRecordCRUD, FileRecordSchema
+from .file_record import FileLineSchema, FileRecord, FileRecordRepo, FileRecordSchema
 from .input_record import InputOut, InputRecord, InputRecordRepo, InputRecordSchema
 from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
 
@@ -232,7 +232,7 @@ __all__ = [
     "FileRecord",
     "FileRecordSchema",
     "FileLineSchema",
-    "FileRecordCRUD",
+    "FileRecordRepo",
     # Document Record
     "DocumentRecord",
     "DocumentRecordSchema",
