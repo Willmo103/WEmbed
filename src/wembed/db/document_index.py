@@ -135,7 +135,7 @@ class DocumentIndexRepo:
         """
         results = (
             db.query(DocumentIndexRecord)
-            .filter(DocumentIndexRecord.last_rendered == None)
+            .filter(DocumentIndexRecord.last_rendered is None)
             .all()
         )
         try:

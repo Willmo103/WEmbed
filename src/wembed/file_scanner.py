@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import typer
 
-from .config import app_config
+from .config import IGNORE_EXTENSIONS, IGNORE_PARTS, app_config
 from .db import (
     RepoRecordRepo,
     RepoRecordSchema,
@@ -20,15 +20,35 @@ from .db import (
 from .enums import ScanTypes
 
 
-def _iter_files(base: Path) -> Iterable[Path]:
-    """Yields all files in a directory and its subdirectories."""
+def iter_files_from_pl_path(base: Path) -> Iterable[Path]:
+    """
+    Yields all files in a directory and its subdirectories.
+    Args:
+        base (pathlib.Path): A pathlib.Path object representing the base directory to iterate.
+    Yields:
+        Iterable[pathlib.Path]: An iterable of pathlib.Path objects for each file found.
+    """
     for item in base.rglob("*"):
         if item.is_file():
             yield item
 
 
-def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
-    """Checks if a file's path contains any ignored segments."""
+def path_has_ignored_part(
+    item: Path, parts: Set[str] = app_config.ignore_parts
+) -> bool:
+    """
+    Checks each pathlib.Path().part of `item` against each str in `parts`
+    and returns True if any match. The default for 'parts' comes from
+    [src/wembed/config/ignore_parts.py] if the
+    IGNORE_PARTS environment variable is not set.
+
+    Args:
+        item (pathlib.Path): The file or directory path to check.
+        parts (Set[str]): A set of path segments to ignore.
+
+    Returns:
+        bool: True if any part of the path matches an ignored segment, False otherwise.
+    """
     return any(seg in parts for seg in item.parts)
 
 
@@ -49,7 +69,7 @@ def _scan_directory(
         marker_pattern = ".git" if scan_type == ScanTypes.REPO else ".obsidian"
 
         for marker in base.rglob(marker_pattern):
-            if not marker.is_dir() or _should_skip(marker.parent, ignore_list):
+            if not marker.is_dir() or path_has_ignored_part(marker.parent, ignore_list):
                 continue
 
             root = marker.parent.resolve()
@@ -71,24 +91,28 @@ def _scan_directory(
                 except Exception:
                     # Fallback for non-git dirs or errors
                     file_paths = [
-                        f.relative_to(root).as_posix() for f in _iter_files(root)
+                        f.relative_to(root).as_posix()
+                        for f in iter_files_from_pl_path(root)
                     ]
             # All markdown files for VAULT scan
             elif scan_type == ScanTypes.VAULT:
                 file_paths = [
                     f.relative_to(root).as_posix()
                     for f in root.rglob("*.md")
-                    if not _should_skip(f, ignore_list)
+                    if not path_has_ignored_part(f, ignore_list)
                 ]
             # All files for non-tracked REPO scan
             else:
-                file_paths = [f.relative_to(root).as_posix() for f in _iter_files(root)]
+                file_paths = [
+                    f.relative_to(root).as_posix()
+                    for f in iter_files_from_pl_path(root)
+                ]
 
             # Common filtering logic
             for rel_path in file_paths:
                 p = root / rel_path
                 if not (
-                    _should_skip(p, ignore_list)
+                    path_has_ignored_part(p, ignore_list)
                     or p.suffix in app_config.ignore_extensions
                     or p.name in app_config.ignore_extensions
                 ):
@@ -120,8 +144,8 @@ def _scan_directory(
         root = base
         files = set()
         scan_start = datetime.now(tz=timezone.utc)
-        for item in _iter_files(root):
-            if not _should_skip(item, ignore_list):
+        for item in iter_files_from_pl_path(root):
+            if not path_has_ignored_part(item, ignore_list):
                 files.add(item.relative_to(root).as_posix())
 
         scan_end = datetime.now(tz=timezone.utc)

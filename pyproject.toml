@@ -8,6 +8,7 @@ dependencies = [
     "docling>=2.53.0",
     "llm>=0.27.1",
     "llm-ollama>=0.14.0",
+    "mcp[cli]>=1.15.0",
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.9",
     "pydantic-settings>=2.10.1",
@@ -38,7 +39,7 @@ Repository = "https://github.com/Willmo103/WEmbed"
 Issues = "https://github.com/Willmo103/WEmbed/issues"
 
 [project.scripts]
-cli = "wembed.cli:main"
+cli = "wembed.cli.__main__:main"
 insert-configs = "wembed.scripts.insert_configs:main"
 
 
