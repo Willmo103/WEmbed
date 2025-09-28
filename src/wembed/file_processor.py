@@ -9,6 +9,8 @@ from uuid import uuid4
 
 import typer
 
+from wembed.db.file_line import FileLineSchema
+
 from .config import md_xref
 from .db import (
     DBService,
@@ -101,6 +103,31 @@ def create_file_record_from_path(
             fg=typer.colors.RED,
         )
         return None
+
+
+def get_filelines_list_from_file_record(
+    file_record: FileRecordSchema,
+) -> list[FileLineSchema]:
+    """
+    Genetates a list of FileLineSchema objects from a FileRecordSchema.
+    returns [] if file_record.content_text is None or empty.
+    """
+    if not file_record.content_text:
+        return []
+
+    lines = file_record.content_text.splitlines()
+    filelines = []
+    for idx, line in enumerate(lines, start=1):
+        fileline = FileLineSchema(
+            id=uuid4().hex,
+            file_id=file_record.id,
+            line_number=idx,
+            content=line,
+            created_at=datetime.now(timezone.utc),
+        )
+        filelines.append(fileline)
+
+    return filelines
 
 
 def generate_markdown_content(file_record: FileRecordSchema) -> str:

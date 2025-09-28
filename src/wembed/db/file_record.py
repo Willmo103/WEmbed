@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field, computed_field
 from sqlalchemy import DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from .tables.tagged_items_table import TaggedItemsTable
+
 from .base import Base
 
 
@@ -44,6 +46,9 @@ class FileRecord(Base):
         uri (str): URI of the file.
         mimetype (str): MIME type of the file.
         created_at (datetime): Timestamp when the record was created.
+
+        relationships:
+        - tags: Relationship to TaggedItemsTable for associated tags.
     """
 
     __tablename__ = "dl_files"
@@ -74,6 +79,14 @@ class FileRecord(Base):
     mimetype: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default="now()"
+    )
+    tags: Mapped[List["TagRecord"]] = relationship(
+        secondary=TaggedItemsTable.__table__,
+        primaryjoin=id == Column(TaggedItemsTable.taggable_id),
+        secondaryjoin=Column(TaggedItemsTable.tag_id) == TagRecord.id,
+        viewonly=True,  # viewonly=True means you manage insertions/deletions on TaggedItemsTable directly
+        # Optional: You can filter the join on the type column
+        # primaryjoin=and_(id == TaggedItemsTable.taggable_id, TaggedItemsTable.taggable_type == "article"),
     )
 
 
