@@ -1,6 +1,7 @@
 """
 Database models, schemas and repository operations for document indexing.
 """
+
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -19,6 +20,7 @@ class DocumentIndexRecord(Base):
     - file_id (str): Foreign key linking to the associated file record.
     - last_rendered (Optional[datetime]): Timestamp of the last rendering operation.
     """
+
     __tablename__ = "dl_document_index"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -35,11 +37,13 @@ class DocumentIndexSchema(BaseModel):
 
     class Config:
         """Pydantic configuration to allow population from ORM objects."""
+
         from_attributes = True
 
 
 class DocumentIndexRepo:
     """Repository class for DocumentIndexRecord entities"""
+
     @staticmethod
     def create(db: Session, doc_index: DocumentIndexSchema) -> DocumentIndexRecord:
         """

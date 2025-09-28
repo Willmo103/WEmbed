@@ -131,7 +131,24 @@ class DocumentRecordRepo:
     """
     Repository class for DocumentRecord entities.
     Provides methods for creating, retrieving, updating, and deleting document records.
+
+    Methods:
+    - create: Create a new document record.
+    - get_by_id: Retrieve a document by its ID.
+    - get_by_source: Retrieve a document by its source.
+    - get_by_source_type: Retrieve documents by their source type.
+    - get_by_source_ref: Retrieve a document by its source reference ID.
+    - search_by_text: Search documents by text content.
+    - search_by_markdown: Search documents by markdown content.
+    - get_all: Fetch all documents with pagination.
+    - update: Update a document by its ID.
+    - update_text_content: Update the text content of a document by its ID.
+    - update_chunks: Update the chunks_json field of a document by its ID.
+    - delete: Delete a document by its ID.
+    - to_schema: Convert a DocumentRecord to a DocumentRecordSchema.
+    - to_document_out: Convert a DocumentRecord to a DocumentOut schema.
     """
+
     @staticmethod
     def create(db: Session, document: DocumentRecordSchema) -> DocumentRecord:
         """
