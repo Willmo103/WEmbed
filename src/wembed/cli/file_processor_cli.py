@@ -1,9 +1,9 @@
 from typer import Typer, echo
 
+from wembed.db import FileRecordRepo, InputRecordRepo, RepoRecordRepo, VaultRecordRepo
 from wembed.file_processor import process_repo_files, process_vault_files
-from wembed.db import VaultRecordRepo, RepoRecordRepo, FileRecordRepo, InputRecordRepo
-from . import cli_db_service
 
+from . import cli_db_service
 
 file_processor_cli = Typer(
     name="process", no_args_is_help=True, help="File Processing Commands"
@@ -28,9 +28,7 @@ def process_repos_command():
     process_repo_files(cli_db_service)
 
 
-@file_processor_cli.command(
-    name="all", help="Process all files (vaults and repos)"
-)
+@file_processor_cli.command(name="all", help="Process all files (vaults and repos)")
 def process_all_command():
     """Process all scanned files."""
     echo("Starting processing of all files...")
