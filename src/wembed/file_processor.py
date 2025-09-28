@@ -15,7 +15,7 @@ from .db import (
     DocumentIndexSchema,
     FileRecordCRUD,
     FileRecordSchema,
-    InputRecordCRUD,
+    InputRecordRepo,
     InputRecordSchema,
     RepoRecordCRUD,
     VaultRecordCRUD,
@@ -264,7 +264,7 @@ def process_vault_files() -> None:
                     status="pending",
                     input_file_id=file_record.id,
                 )
-                InputRecordCRUD.create(session, input_record)
+                InputRecordRepo.create(session, input_record)
 
                 processed_count += 1
                 typer.echo(f"Processed: {file_path} -> {vault_path}")
@@ -347,7 +347,7 @@ def process_repo_files() -> None:
                     status="pending",
                     input_file_id=file_record.id,
                 )
-                InputRecordCRUD.create(session, input_record)
+                InputRecordRepo.create(session, input_record)
 
                 processed_count += 1
                 typer.echo(f"Processed: {file_path} -> {vault_path}")
@@ -411,7 +411,7 @@ def show_status_command():
         vault_count = len(VaultRecordCRUD.get_all(session))
         repo_count = len(RepoRecordCRUD.get_all(session))
         file_count = len(FileRecordCRUD.get_all(session))
-        pending_inputs = len(InputRecordCRUD.get_by_status(session, "pending"))
+        pending_inputs = len(InputRecordRepo.get_by_status(session, "pending"))
 
         typer.echo("Processing Status:")
         typer.echo(f"  Vaults discovered: {vault_count}")

@@ -1,4 +1,8 @@
-# file_record.py
+"""
+(File: src/wembed/db/file_record.py)
+SQLAlchemy models and Pydantic schemas for file records and file lines,
+along with Repository classes for CRUD operations.
+"""
 
 from datetime import datetime, timezone
 from typing import Optional, Type

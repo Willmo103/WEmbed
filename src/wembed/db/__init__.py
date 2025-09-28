@@ -18,9 +18,9 @@ from .document_record import (
     DocumentRecordSchema,
     StringContentOut,
 )
-from .file_line import FileLineRepo, FileLineRecord
+from .file_line import FileLineRecord, FileLineRepo
 from .file_record import FileLineSchema, FileRecord, FileRecordCRUD, FileRecordSchema
-from .input_record import InputOut, InputRecord, InputRecordCRUD, InputRecordSchema
+from .input_record import InputOut, InputRecord, InputRecordRepo, InputRecordSchema
 from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
 
 # Import all record models and their CRUD operations
@@ -222,7 +222,7 @@ __all__ = [
     "InputRecord",
     "InputRecordSchema",
     "InputOut",
-    "InputRecordCRUD",
+    "InputRecordRepo",
     # Chunk Record
     "ChunkRecord",
     "ChunkRecordSchema",
