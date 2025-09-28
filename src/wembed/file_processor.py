@@ -13,7 +13,7 @@ from .config import app_config
 from .db import (
     DocumentIndexRepo,
     DocumentIndexSchema,
-    FileRecordCRUD,
+    FileRecordRepo,
     FileRecordSchema,
     InputRecordRepo,
     InputRecordSchema,
@@ -222,7 +222,7 @@ def process_vault_files() -> None:
                 relative_path = str(file_path.relative_to(source_root))
 
                 # Check if file record already exists
-                existing = FileRecordCRUD.get_by_sha256(
+                existing = FileRecordRepo.get_by_sha256(
                     session, hashlib.sha256(file_path.read_bytes()).hexdigest()
                 )
                 if existing:
@@ -246,7 +246,7 @@ def process_vault_files() -> None:
                 file_record.markdown = markdown_content
 
                 # Save to database
-                FileRecordCRUD.create(session, file_record)
+                FileRecordRepo.create(session, file_record)
 
                 # Write markdown to vault
                 vault_path = write_markdown_to_vault(file_record, markdown_content)
@@ -304,7 +304,7 @@ def process_repo_files() -> None:
 
                 # Check if file record already exists
                 if file_path.exists():
-                    existing = FileRecordCRUD.get_by_sha256(
+                    existing = FileRecordRepo.get_by_sha256(
                         session,
                         hashlib.sha256(file_path.read_bytes()).hexdigest(),
                     )
@@ -329,7 +329,7 @@ def process_repo_files() -> None:
                 file_record.markdown = markdown_content
 
                 # Save to database
-                FileRecordCRUD.create(session, file_record)
+                FileRecordRepo.create(session, file_record)
 
                 # Write markdown to vault
                 vault_path = write_markdown_to_vault(file_record, markdown_content)
@@ -410,7 +410,7 @@ def show_status_command():
         # Count records
         vault_count = len(VaultRecordCRUD.get_all(session))
         repo_count = len(RepoRecordCRUD.get_all(session))
-        file_count = len(FileRecordCRUD.get_all(session))
+        file_count = len(FileRecordRepo.get_all(session))
         pending_inputs = len(InputRecordRepo.get_by_status(session, "pending"))
 
         typer.echo("Processing Status:")
