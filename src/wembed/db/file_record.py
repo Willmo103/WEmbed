@@ -45,6 +45,7 @@ class FileRecord(Base):
         mimetype (str): MIME type of the file.
         created_at (datetime): Timestamp when the record was created.
     """
+
     __tablename__ = "dl_files"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -108,6 +109,7 @@ class FileRecordSchema(BaseModel):
 
     class Config:
         """Pydantic configuration to allow ORM mode."""
+
         from_attributes = True
 
 
@@ -127,6 +129,7 @@ class FileLineSchema(BaseModel):
 
     class Config:
         """Pydantic configuration to allow ORM mode."""
+
         from_attributes = True
 
 
@@ -152,6 +155,7 @@ class FileRecordRepo:
     - delete: Delete a file record by its ID.
     - to_schema: Convert a FileRecord to its corresponding FileRecordSchema.
     """
+
     @staticmethod
     def create(db: Session, file_record: FileRecordSchema) -> FileRecord:
         """
@@ -240,7 +244,9 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the source name.
         """
-        results = db.query(FileRecord).filter(FileRecord.source_name == source_name).all()
+        results = (
+            db.query(FileRecord).filter(FileRecord.source_name == source_name).all()
+        )
         try:
             records = [FileRecord(**r.__dict__) for r in results]
             return [FileRecordRepo.to_schema(r) for r in records]
@@ -307,7 +313,9 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the name pattern.
         """
-        results = db.query(FileRecord).filter(FileRecord.name.contains(name_pattern)).all()
+        results = (
+            db.query(FileRecord).filter(FileRecord.name.contains(name_pattern)).all()
+        )
         try:
             records = [FileRecord(**r.__dict__) for r in results]
             return [FileRecordRepo.to_schema(r) for r in records]
@@ -327,7 +335,11 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the content text.
         """
-        results = db.query(FileRecord).filter(FileRecord.content_text.contains(search_text)).all()
+        results = (
+            db.query(FileRecord)
+            .filter(FileRecord.content_text.contains(search_text))
+            .all()
+        )
         try:
             records = [FileRecord(**r.__dict__) for r in results]
             return [FileRecordRepo.to_schema(r) for r in records]

@@ -21,7 +21,7 @@ from .document_record import (
 from .file_line import FileLineRecord, FileLineRepo
 from .file_record import FileLineSchema, FileRecord, FileRecordRepo, FileRecordSchema
 from .input_record import InputOut, InputRecord, InputRecordRepo, InputRecordSchema
-from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
+from .repo_record import RepoRecord, RepoRecordRepo, RepoRecordSchema
 
 # Import all record models and their CRUD operations
 from .scan_result import (
@@ -214,7 +214,7 @@ __all__ = [
     # Repo Record
     "RepoRecord",
     "RepoRecordSchema",
-    "RepoRecordCRUD",
+    "RepoRecordRepo",
     # Document Index
     "DocumentIndexRecord",
     "DocumentIndexSchema",

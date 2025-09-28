@@ -17,7 +17,7 @@ from .db import (
     FileRecordSchema,
     InputRecordRepo,
     InputRecordSchema,
-    RepoRecordCRUD,
+    RepoRecordRepo,
     VaultRecordCRUD,
     get_session,
 )
@@ -194,9 +194,9 @@ def get_repo_files() -> Generator[tuple[Path, str, str, str], None, None]:
     """Generator that yields repo file information."""
     session = get_session()
     try:
-        repos = RepoRecordCRUD.get_all(session)
+        repos = RepoRecordRepo.get_all(session)
         for repo in repos:
-            repo_schema = RepoRecordCRUD.to_schema(repo)
+            repo_schema = RepoRecordRepo.to_schema(repo)
             for file_path in repo_schema.files or []:
                 full_path = Path(repo_schema.root_path) / file_path
                 yield full_path, "repo", repo_schema.name, repo_schema.root_path
@@ -409,7 +409,7 @@ def show_status_command():
     try:
         # Count records
         vault_count = len(VaultRecordCRUD.get_all(session))
-        repo_count = len(RepoRecordCRUD.get_all(session))
+        repo_count = len(RepoRecordRepo.get_all(session))
         file_count = len(FileRecordRepo.get_all(session))
         pending_inputs = len(InputRecordRepo.get_by_status(session, "pending"))
 
