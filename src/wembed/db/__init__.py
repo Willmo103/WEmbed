@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from ..config import AppConfig
 from .base import Base
-from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
+from .chunk_record import ChunkRecord, ChunkRecordRepo, ChunkRecordSchema
 from .document_index import DocumentIndexRecord, DocumentIndexRepo, DocumentIndexSchema
 from .document_record import (
     ChunkList,
