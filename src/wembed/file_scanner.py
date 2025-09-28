@@ -9,7 +9,7 @@ import typer
 
 from .config import app_config
 from .db import (
-    RepoRecordCRUD,
+    RepoRecordRepo,
     RepoRecordSchema,
     ScanResult_Controller,
     ScanResultSchema,
@@ -185,7 +185,7 @@ def convert_scan_results_to_records(
                     file_count=len(result.files) if result.files else 0,
                     indexed_at=datetime.now(timezone.utc),
                 )
-                RepoRecordCRUD.create(session, repo_record)
+                RepoRecordRepo.create(session, repo_record)
 
         typer.echo(f"Converted {len(scan_results)} scan results to records.")
     except Exception as e:
