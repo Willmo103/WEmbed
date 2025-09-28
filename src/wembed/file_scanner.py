@@ -10,7 +10,6 @@ import typer
 from .config.ignore_ext import IGNORE_EXTENSIONS
 from .config.ignore_parts import IGNORE_PARTS
 from .db import (
-    DBService,
     RepoRecordRepo,
     RepoRecordSchema,
     ScanResult_Controller,
@@ -18,6 +17,7 @@ from .db import (
     VaultRecordRepo,
     VaultRecordSchema,
 )
+from . import DBService
 from .enums import ScanTypes
 
 
