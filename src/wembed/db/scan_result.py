@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Generator, List, Optional, Type
+from typing import Generator, List, Optional
 
 from pydantic import BaseModel, computed_field
 from sqlalchemy import JSON, DateTime, Integer, String

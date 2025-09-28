@@ -1,3 +1,4 @@
+from typing import Generator
 from unittest import mock
 
 import pytest
@@ -91,7 +92,7 @@ class TestDatabaseIntegration:
     """
 
     @pytest.fixture(scope="function")
-    def temp_db_session(self, monkeypatch) -> None:
+    def temp_db_session(self, monkeypatch) -> Generator[wdb.Session, None, None]:
         """
         A fixture that provides a fully functional, temporary in-memory SQLite session.
         It handles setup (engine, tables) and teardown (closing the session).

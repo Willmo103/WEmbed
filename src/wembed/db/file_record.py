@@ -230,7 +230,24 @@ class FileRecordRepo:
 
     @staticmethod
     def get_by_source_type(db: Session, source_type: str) -> List[FileRecordSchema]:
-        return db.query(FileRecord).filter(FileRecord.source_type == source_type).all()
+        """
+        Retrieve file records by their source type.
+
+        Args:
+            db (Session): SQLAlchemy session object.
+            source_type (str): The source type to filter file records.
+
+        Returns:
+            List[FileRecordSchema]: List of FileRecordSchema objects matching the source type.
+        """
+        results = (
+            db.query(FileRecord).filter(FileRecord.source_type == source_type).all()
+        )
+        try:
+            return [FileRecordSchema(**r.__dict__) for r in results]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
     def get_by_source_name(db: Session, source_name: str) -> List[FileRecordSchema]:
@@ -285,7 +302,13 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the suffix.
         """
-        return db.query(FileRecord).filter(FileRecord.suffix == suffix).all()
+        results = db.query(FileRecord).filter(FileRecord.suffix == suffix).all()
+        try:
+            records = [FileRecord(**r.__dict__) for r in results]
+            return [FileRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
     def get_by_mimetype(db: Session, mimetype: str) -> List[FileRecordSchema]:
@@ -299,7 +322,13 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the MIME type.
         """
-        return db.query(FileRecord).filter(FileRecord.mimetype == mimetype).all()
+        results = db.query(FileRecord).filter(FileRecord.mimetype == mimetype).all()
+        try:
+            records = [FileRecord(**r.__dict__) for r in results]
+            return [FileRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            db.rollback()
+            return []
 
     @staticmethod
     def search_by_name(db: Session, name_pattern: str) -> List[FileRecordSchema]:

@@ -1,0 +1,21 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+[*]                                             # What files this configuration applies to
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.md]                                         # Override for Markdown files
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]                                # Override for YAML files
+indent_size = 2
+
+[*.{json,xml}]                               # Override for JSON and XML files
+indent_size = 2
