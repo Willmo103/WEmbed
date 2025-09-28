@@ -1,9 +1,8 @@
 import typer
 
-from wembed.config import AppConfig
 from wembed.db.input_record import InputRecordRepo
 
-from ..db import ChunkRecordRepo, DBService, DocumentRecordRepo
+from ..db import ChunkRecordRepo, DocumentRecordRepo
 from ..dl_doc_processor import DlDocProcessor
 from . import cli_db_service
 

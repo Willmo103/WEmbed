@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import typer
 
-from .config import AppConfig, md_xref
+from .config import md_xref
 from .db import (
     DBService,
     DocumentIndexRepo,
