@@ -3,8 +3,9 @@ import typer
 from wembed.config import AppConfig
 from wembed.db.input_record import InputRecordRepo
 
+from ..db import ChunkRecordRepo, DBService, DocumentRecordRepo
 from ..dl_doc_processor import DlDocProcessor
-from ..db import DBService, DocumentRecordRepo, ChunkRecordRepo
+from . import cli_db_service
 
 doc_processor_cli = typer.Typer(
     name="doc-processor",
@@ -20,7 +21,7 @@ def convert_source_command(
 ) -> None:
     """Convert a single source to a DoclingDocument."""
     processor = DlDocProcessor()
-    result = processor.convert_source(source)
+    result = processor.convert_source(source, db_svc=cli_db_service)
 
     if result:
         typer.echo(f"Successfully processed source. Document ID: {result}")
@@ -34,7 +35,7 @@ def convert_source_command(
 def process_pending_command():
     """Process all pending input records in the database."""
     processor = DlDocProcessor()
-    processor.process_pending_inputs()
+    processor.process_pending_inputs(db_svc=cli_db_service)
 
 
 @doc_processor_cli.command(name="process-file", help="Process a specific file record")
@@ -43,7 +44,7 @@ def process_file_command(
 ):
     """Process a specific file record by ID."""
     processor = DlDocProcessor()
-    result = processor.process_file_record(file_id)
+    result = processor.process_file_record(file_id, db_svc=cli_db_service)
 
     if result:
         typer.echo(f"Successfully processed file. Document ID: {result}")
@@ -54,7 +55,7 @@ def process_file_command(
 @doc_processor_cli.command(name="status", help="Show document processing status")
 def show_status_command():
     """Show the current document processing status."""
-    session = get_session()
+    session = cli_db_service.get_session()
     try:
         pending_count = len(InputRecordRepo.get_unprocessed(session))
         processed_count = len(InputRecordRepo.get_by_status(session, "processed"))

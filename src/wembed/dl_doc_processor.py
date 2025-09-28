@@ -11,17 +11,15 @@ from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from docling_core.types.doc.document import DoclingDocument
 
-from wembed.cli.doc_processor_cli import doc_processor_cli
-
 from .config import AppConfig
 from .db import (
     ChunkRecordRepo,
     ChunkRecordSchema,
+    DBService,
     DocumentRecordRepo,
     DocumentRecordSchema,
     FileRecordRepo,
     InputRecordRepo,
-    get_session,
 )
 
 MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
@@ -59,7 +57,7 @@ class DlDocProcessor:
         return self._converter.convert(source=src).document
 
     def convert_source(
-        self, src: str, input_record_id: Optional[int] = None
+        self, src: str, input_record_id: Optional[int] = None, db_svc: DBService = None
     ) -> Optional[int]:
         """
         Convert a source (URL or file path) to a DoclingDocument and process chunks.
@@ -71,7 +69,7 @@ class DlDocProcessor:
         Returns:
             Document record ID if successful, None if failed
         """
-        session = get_session()
+        session = db_svc.get_session()
 
         try:
             # Convert source to DoclingDocument
@@ -212,9 +210,11 @@ class DlDocProcessor:
         finally:
             session.close()
 
-    def process_file_record(self, file_record_id: str) -> Optional[int]:
+    def process_file_record(
+        self, file_record_id: str, db_svc: DBService
+    ) -> Optional[int]:
         """Process a file record by converting its markdown to a document."""
-        session = get_session()
+        session = db_svc.get_session()
 
         try:
             # Get file record
@@ -276,9 +276,9 @@ class DlDocProcessor:
         finally:
             session.close()
 
-    def process_pending_inputs(self) -> None:
+    def process_pending_inputs(self, db_svc: DBService) -> None:
         """Process all pending input records."""
-        session = get_session()
+        session = db_svc.get_session()
 
         try:
             pending_inputs = InputRecordRepo.get_unprocessed(session)

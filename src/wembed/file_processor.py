@@ -11,6 +11,7 @@ import typer
 
 from .config import AppConfig, md_xref
 from .db import (
+    DBService,
     DocumentIndexRepo,
     DocumentIndexSchema,
     FileRecordRepo,
@@ -19,7 +20,6 @@ from .db import (
     InputRecordSchema,
     RepoRecordRepo,
     VaultRecordRepo,
-    DBService
 )
 
 
@@ -156,10 +156,10 @@ version: {file_record.version}
 
 
 def generate_markdown_content_from_path(
-        file_path: Path,
-        source_type: Optional[str] = "unknown",
-        source_name: Optional[str] = "unknown"
-    ) -> str:
+    file_path: Path,
+    source_type: Optional[str] = "unknown",
+    source_name: Optional[str] = "unknown",
+) -> str:
     """Generate markdown content directly from a file path."""
     file_record = create_file_record_from_path(
         file_path,
@@ -173,9 +173,7 @@ def generate_markdown_content_from_path(
     return "# Error generating markdown content"
 
 
-def write_markdown_to_vault(
-    file_record: FileRecordSchema, dir: Path
-) -> Path:
+def write_markdown_to_vault(file_record: FileRecordSchema, dir: Path) -> Path:
     """Write markdown content to the vault directory."""
     # Create the destination path in the vault
     dest_path = (
@@ -194,7 +192,9 @@ def write_markdown_to_vault(
     return dest_path
 
 
-def get_vault_files(db_svc: DBService) -> Generator[tuple[Path, str, str, str], None, None]:
+def get_vault_files(
+    db_svc: DBService,
+) -> Generator[tuple[Path, str, str, str], None, None]:
     """Generator that yields vault file information."""
     session = db_svc.get_session()
     try:

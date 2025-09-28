@@ -52,6 +52,7 @@ def get_config_dir() -> Path:
 # Determine the active configuration directory ONCE on import.
 CONFIG_DIR = get_config_dir()
 
+
 # region: Helper functions to load satellite JSON files
 def _load_json_from_config_dir(filename: str, default: Any) -> Any:
     """Loads a specific JSON file from the config dir, with a default fallback."""
@@ -61,22 +62,42 @@ def _load_json_from_config_dir(filename: str, default: Any) -> Any:
             return json.load(f)
     return default
 
+
 # --- Helpers to load specific satellite config files ---
 def load_headers() -> Dict[str, str]:
-    return _load_json_from_config_dir("headers.json", default={})
+    return (
+        _load_json_from_config_dir("headers.json", default={})
+        if _load_json_from_config_dir("headers.json", default={})
+        else {}
+    )
 
 
 def load_ignore_extensions() -> List[str]:
-    return _load_json_from_config_dir("ignore_exts.json", default=[])
+    return (
+        _load_json_from_config_dir("ignore_exts.json", default=[])
+        if _load_json_from_config_dir("ignore_exts.json", default=[])
+        else []
+    )
 
 
 def load_ignore_parts() -> List[str]:
-    return _load_json_from_config_dir("ignore_parts.json", default=[])
+    return (
+        _load_json_from_config_dir("ignore_parts.json", default=[])
+        if _load_json_from_config_dir("ignore_parts.json", default=[])
+        else []
+    )
 
 
 def load_md_xref() -> Dict[str, Any]:
-    return _load_json_from_config_dir("md_xref.json", default={})
-#- endregion
+    return (
+        _load_json_from_config_dir("md_xref.json", default={})
+        if _load_json_from_config_dir("md_xref.json", default={})
+        else {}
+    )
+
+
+# - endregion
+
 
 # --- Main AppConfig class ---
 class AppConfig(BaseSettings):
@@ -127,4 +148,6 @@ class AppConfig(BaseSettings):
         # Allow extra fields in the JSON file to be ignored
         extra="ignore",
     )
-#- endregion
+
+
+# - endregion

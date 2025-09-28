@@ -23,6 +23,7 @@ class VaultRecord(Base):
      - file_count (int): Number of files in the vault.
      - indexed_at (datetime, optional): Timestamp of the last indexing operation.
     """
+
     __tablename__ = "dl_vault"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -47,6 +48,7 @@ class VaultRecordSchema(BaseModel):
 
     class Config:
         """Pydantic configuration for ORM compatibility."""
+
         from_attributes = True
 
 
@@ -55,6 +57,7 @@ class VaultRecordRepo:
     Repository class for managing VaultRecord database operations.
     Provides methods for creating, reading, updating, and deleting vault records.
     """
+
     @staticmethod
     def create(db: Session, vault: VaultRecordSchema) -> VaultRecord:
         """
@@ -138,7 +141,9 @@ class VaultRecordRepo:
         return db.query(VaultRecord).filter(VaultRecord.root_path == root_path).first()
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[VaultRecordSchema]:
+    def get_all(
+        db: Session, skip: int = 0, limit: int = 100
+    ) -> List[VaultRecordSchema]:
         """
         Retrieve all vault records with pagination.
         Args:

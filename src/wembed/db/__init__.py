@@ -28,7 +28,6 @@ from .scan_result import (
     ScanResultRecord,
     ScanResultSchema,
 )
-
 from .tables import (
     IgnoreExtSchema,
     IgnoreExtTable,
