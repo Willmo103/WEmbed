@@ -13,7 +13,7 @@ from .db import (
     RepoRecordSchema,
     ScanResult_Controller,
     ScanResultSchema,
-    VaultRecordCRUD,
+    VaultRecordRepo,
     VaultRecordSchema,
     get_session,
 )
@@ -198,7 +198,7 @@ def convert_scan_results_to_records(
                     file_count=len(result.files) if result.files else 0,
                     indexed_at=datetime.now(timezone.utc),
                 )
-                VaultRecordCRUD.create(session, vault_record)
+                VaultRecordRepo.create(session, vault_record)
 
             elif result.scan_type == ScanTypes.REPO.value:
                 repo_record = RepoRecordSchema(

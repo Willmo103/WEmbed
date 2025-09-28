@@ -11,6 +11,18 @@ from .base import Base
 
 
 class VaultRecord(Base):
+    """
+    Represents a vault in the database.
+
+    Attributes:
+     - id (int): Primary key.
+     - name (str): Name of the vault.
+     - host (str): Host of the vault (e.g., GitHub, GitLab).
+     - root_path (str): Root path of the vault.
+     - files (List[str], optional): List of file paths in the vault.
+     - file_count (int): Number of files in the vault.
+     - indexed_at (datetime, optional): Timestamp of the last indexing operation.
+    """
     __tablename__ = "dl_vault"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -34,12 +46,26 @@ class VaultRecordSchema(BaseModel):
     indexed_at: Optional[datetime] = None
 
     class Config:
+        """Pydantic configuration for ORM compatibility."""
         from_attributes = True
 
 
-class VaultRecordCRUD:
+class VaultRecordRepo:
+    """
+    Repository class for managing VaultRecord database operations.
+    Provides methods for creating, reading, updating, and deleting vault records.
+    """
     @staticmethod
     def create(db: Session, vault: VaultRecordSchema) -> VaultRecord:
+        """
+        Create a new vault record in the database.
+
+        Args:
+            db (Session): The database session.
+            vault (VaultRecordSchema): The vault data to create.
+        Returns:
+            VaultRecord: The created vault record.
+        """
         db_record = VaultRecord(
             name=vault.name,
             host=vault.host,
@@ -55,29 +81,95 @@ class VaultRecordCRUD:
 
     @staticmethod
     def get_by_id(db: Session, vault_id: int) -> Optional[VaultRecord]:
+        """
+        Retrieve a vault record by its ID.
+        Args:
+            db (Session): The database session.
+            vault_id (int): The ID of the vault to retrieve.
+
+        Returns:
+            Optional[VaultRecord]: The retrieved vault record, or None if not found.
+        """
         return db.query(VaultRecord).filter(VaultRecord.id == vault_id).first()
 
     @staticmethod
     def get_by_name(db: Session, name: str) -> Optional[VaultRecord]:
+        """
+        Retrieve a vault record by its name.
+        Args:
+            db (Session): The database session.
+            name (str): The name of the vault to retrieve.
+
+        Returns:
+            Optional[VaultRecord]: The retrieved vault record, or None if not found.
+        """
         return db.query(VaultRecord).filter(VaultRecord.name == name).first()
 
     @staticmethod
-    def get_by_host(db: Session, host: str) -> List[VaultRecord]:
-        return db.query(VaultRecord).filter(VaultRecord.host == host).all()
+    def get_by_host(db: Session, host: str) -> List[VaultRecordSchema]:
+        """
+        Retrieve vault records by their host.
+        Args:
+            db (Session): The database session.
+            host (str): The host of the vaults to retrieve.
+
+        Returns:
+            List[VaultRecordSchema]: The retrieved vault records.
+        """
+        results = db.query(VaultRecord).filter(VaultRecord.host == host).all()
+        try:
+            records = [VaultRecord(**r.__dict__) for r in results]
+            return [VaultRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            # Handle exceptions or log errors as needed
+            return []
 
     @staticmethod
     def get_by_root_path(db: Session, root_path: str) -> Optional[VaultRecord]:
+        """
+        Retrieve a vault record by its root path.
+        Args:
+            db (Session): The database session.
+            root_path (str): The root path of the vault to retrieve.
+
+        Returns:
+            Optional[VaultRecord]: The retrieved vault record, or None if not found.
+        """
         return db.query(VaultRecord).filter(VaultRecord.root_path == root_path).first()
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[VaultRecord]:
-        return db.query(VaultRecord).offset(skip).limit(limit).all()
+    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[VaultRecordSchema]:
+        """
+        Retrieve all vault records with pagination.
+        Args:
+            db (Session): The database session.
+            skip (int): The number of records to skip (for pagination).
+            limit (int): The maximum number of records to retrieve.
+
+        Returns:
+            List[VaultRecord]: The retrieved vault records.
+        """
+        retsults = db.query(VaultRecord).offset(skip).limit(limit).all()
+        try:
+            records = [VaultRecord(**r.__dict__) for r in retsults]
+            return [VaultRecordRepo.to_schema(r) for r in records]
+        except Exception:
+            # Handle exceptions or log errors as needed
+            return []
 
     @staticmethod
     def update(
         db: Session, vault_id: int, vault: VaultRecordSchema
     ) -> Optional[VaultRecord]:
-        db_record = VaultRecordCRUD.get_by_id(db, vault_id)
+        """Update an existing vault record in the database.
+        Args:
+            db (Session): The database session.
+            vault_id (int): The ID of the vault to update.
+            vault (VaultRecordSchema): The updated vault data.
+        Returns:
+            Optional[VaultRecord]: The updated vault record, or None if not found.
+        """
+        db_record = VaultRecordRepo.get_by_id(db, vault_id)
         if db_record:
             for key, value in vault.model_dump(
                 exclude_unset=True, exclude={"id"}
@@ -89,7 +181,14 @@ class VaultRecordCRUD:
 
     @staticmethod
     def delete(db: Session, vault_id: int) -> bool:
-        db_record = VaultRecordCRUD.get_by_id(db, vault_id)
+        """Delete a vault record from the database by its ID.
+        Args:
+            db (Session): The database session.
+            vault_id (int): The ID of the vault to delete.
+        Returns:
+            bool: True if the record was deleted, False if not found.
+        """
+        db_record = VaultRecordRepo.get_by_id(db, vault_id)
         if db_record:
             db.delete(db_record)
             db.commit()
@@ -100,7 +199,16 @@ class VaultRecordCRUD:
     def update_file_count(
         db: Session, vault_id: int, file_count: int
     ) -> Optional[VaultRecord]:
-        db_record = VaultRecordCRUD.get_by_id(db, vault_id)
+        """
+        Update the file count and indexed_at timestamp of a vault record.
+        Args:
+            db (Session): The database session.
+            vault_id (int): The ID of the vault to update.
+            file_count (int): The new file count to set.
+        Returns:
+            Optional[VaultRecord]: The updated vault record, or None if not found.
+        """
+        db_record = VaultRecordRepo.get_by_id(db, vault_id)
         if db_record:
             db_record.file_count = file_count
             db_record.indexed_at = datetime.now(timezone.utc)
@@ -110,6 +218,14 @@ class VaultRecordCRUD:
 
     @staticmethod
     def to_schema(record: VaultRecord) -> VaultRecordSchema:
+        """
+        Convert a VaultRecord to a VaultRecordSchema.
+        Args:
+            record (VaultRecord): The vault record to convert.
+
+        Returns:
+            VaultRecordSchema: The converted vault record schema.
+        """
         return VaultRecordSchema(
             id=record.id,
             name=record.name,

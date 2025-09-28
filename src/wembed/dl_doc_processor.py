@@ -11,7 +11,9 @@ from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from docling_core.types.doc.document import DoclingDocument
 
-from .config import app_config
+from wembed.cli.doc_processor_cli import doc_processor_cli
+
+from .config import AppConfig
 from .db import (
     ChunkRecordCRUD,
     ChunkRecordSchema,
@@ -28,20 +30,20 @@ MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 class DlDocProcessor:
     """Document processor for converting files to DoclingDocuments and creating embeddings."""
 
-    def __init__(self):
-        self._embedder = llm.get_embedding_model(app_config.embed_model_name)
+    def __init__(self, config: AppConfig):
+        self._embedder = llm.get_embedding_model(config.embed_model_name)
         self._tokenizer = HuggingFaceTokenizer.from_pretrained(
-            app_config.embed_model_id, app_config.max_tokens
+            config.embed_model_id, config.max_tokens
         )
         self._converter = DocumentConverter()
-        self._headers = app_config.headers
+        self._headers = config.headers
         self._chunker = HybridChunker(
             tokenizer=self._tokenizer,
         )
         self._collection = llm.Collection(
             name="chunk_embeddings",
             model=self._embedder,
-            db=app_config.local_db,
+            db=config.local_db,
         )
 
     def _convert_webpage(
@@ -326,72 +328,3 @@ class DlDocProcessor:
 
         finally:
             session.close()
-
-
-# CLI Interface
-doc_processor_cli = typer.Typer(
-    name="doc-processor",
-    help="Document processing commands",
-    no_args_is_help=True,
-)
-
-
-@doc_processor_cli.command(name="convert", help="Convert a single source (URL or file)")
-def convert_source_command(
-    source: str = typer.Argument(..., help="Source URL or file path to convert"),
-) -> None:
-    """Convert a single source to a DoclingDocument."""
-    processor = DlDocProcessor()
-    result = processor.convert_source(source)
-
-    if result:
-        typer.echo(f"Successfully processed source. Document ID: {result}")
-    else:
-        typer.secho("Failed to process source", fg=typer.colors.RED)
-
-
-@doc_processor_cli.command(
-    name="process-pending", help="Process all pending input records"
-)
-def process_pending_command():
-    """Process all pending input records in the database."""
-    processor = DlDocProcessor()
-    processor.process_pending_inputs()
-
-
-@doc_processor_cli.command(name="process-file", help="Process a specific file record")
-def process_file_command(
-    file_id: str = typer.Argument(..., help="File record ID to process"),
-):
-    """Process a specific file record by ID."""
-    processor = DlDocProcessor()
-    result = processor.process_file_record(file_id)
-
-    if result:
-        typer.echo(f"Successfully processed file. Document ID: {result}")
-    else:
-        typer.secho("Failed to process file", fg=typer.colors.RED)
-
-
-@doc_processor_cli.command(name="status", help="Show document processing status")
-def show_status_command():
-    """Show the current document processing status."""
-    session = get_session()
-    try:
-        pending_count = len(InputRecordRepo.get_unprocessed(session))
-        processed_count = len(InputRecordRepo.get_by_status(session, "processed"))
-        total_docs = len(DocumentRecordRepo.get_all(session))
-        total_chunks = len(ChunkRecordCRUD.get_all(session))
-
-        typer.echo("=== Document Processing Status ===")
-        typer.echo(f"Pending inputs: {pending_count}")
-        typer.echo(f"Processed inputs: {processed_count}")
-        typer.echo(f"Total documents: {total_docs}")
-        typer.echo(f"Total chunks: {total_chunks}")
-
-    finally:
-        session.close()
-
-
-if __name__ == "__main__":
-    doc_processor_cli()
