@@ -15,12 +15,12 @@ from .config import AppConfig
 from .db import (
     ChunkRecordRepo,
     ChunkRecordSchema,
-    DBService,
     DocumentRecordRepo,
     DocumentRecordSchema,
     FileRecordRepo,
     InputRecordRepo,
 )
+from .services.db_service import DBService
 
 MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 
