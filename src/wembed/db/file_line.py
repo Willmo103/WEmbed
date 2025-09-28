@@ -1,3 +1,7 @@
+"""
+SQLAlchemy models and Pydantic schemas for file lines, along with Repository classes for CRUD operations.
+"""
+
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -22,6 +26,7 @@ class FileLineRecord(Base):
         embedding (Optional[List[float]]): Embedding vector for the line.
         created_at (datetime): Timestamp of when the record was created.
     """
+
     __tablename__ = "dl_filelines"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -58,6 +63,7 @@ class FileLineSchema(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -86,6 +92,7 @@ class FileLineRepo:
         get_line_count_by_file: Get the count of lines for a specific file ID.
         to_schema: Convert a FileLineRecord to a FileLineSchema.
     """
+
     @staticmethod
     def create(db: Session, file_line: FileLineSchema) -> FileLineRecord:
         db_record = FileLineRecord(

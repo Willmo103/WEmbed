@@ -18,7 +18,7 @@ from .db import (
     DocumentRecordRepo,
     DocumentRecordSchema,
     FileRecordCRUD,
-    InputRecordCRUD,
+    InputRecordRepo,
     get_session,
 )
 
@@ -85,7 +85,7 @@ class DlDocProcessor:
             if not doc:
                 typer.secho(f"Failed to convert source: {src}", fg=typer.colors.RED)
                 if input_record_id:
-                    InputRecordCRUD.add_error(
+                    InputRecordRepo.add_error(
                         session,
                         input_record_id,
                         f"Failed to convert source: {src}",
@@ -191,9 +191,9 @@ class DlDocProcessor:
                 if errors:
                     # Add errors but mark as processed
                     for error in errors:
-                        InputRecordCRUD.add_error(session, input_record_id, error)
+                        InputRecordRepo.add_error(session, input_record_id, error)
 
-                InputRecordCRUD.mark_processed(session, input_record_id, doc_id)
+                InputRecordRepo.mark_processed(session, input_record_id, doc_id)
                 typer.echo(f"Updated input record {input_record_id}")
 
             return doc_id
@@ -203,7 +203,7 @@ class DlDocProcessor:
             typer.secho(error_msg, fg=typer.colors.RED)
 
             if input_record_id:
-                InputRecordCRUD.add_error(session, input_record_id, error_msg)
+                InputRecordRepo.add_error(session, input_record_id, error_msg)
 
             return None
 
@@ -248,7 +248,7 @@ class DlDocProcessor:
 
             try:
                 # Find associated input record
-                input_record_db = InputRecordCRUD.get_by_file_id(
+                input_record_db = InputRecordRepo.get_by_file_id(
                     session, file_record_id
                 )
                 input_record_id = int(input_record_db.id) if input_record_db else None
@@ -256,7 +256,7 @@ class DlDocProcessor:
                 # Convert the markdown file
                 result = self.convert_source(str(temp_md_path), input_record_id)
                 if result:
-                    InputRecordCRUD.mark_processed(session, input_record_id, result)
+                    InputRecordRepo.mark_processed(session, input_record_id, result)
                 return result
 
             finally:
@@ -279,7 +279,7 @@ class DlDocProcessor:
         session = get_session()
 
         try:
-            pending_inputs = InputRecordCRUD.get_unprocessed(session)
+            pending_inputs = InputRecordRepo.get_unprocessed(session)
             total_pending = len(pending_inputs)
 
             if not pending_inputs:
@@ -292,7 +292,7 @@ class DlDocProcessor:
             error_count = 0
 
             for i, input_record_db in enumerate(pending_inputs):
-                input_record = InputRecordCRUD.to_schema(input_record_db)
+                input_record = InputRecordRepo.to_schema(input_record_db)
                 typer.echo(
                     f"Processing input {i + 1}/{total_pending} (ID: {input_record.id})"
                 )
@@ -317,7 +317,7 @@ class DlDocProcessor:
                         f"Error processing input {input_record.id}: {e}",
                         fg=typer.colors.RED,
                     )
-                    InputRecordCRUD.add_error(session, input_record.id, str(e))
+                    InputRecordRepo.add_error(session, input_record.id, str(e))
                     error_count += 1
 
             typer.echo(
@@ -378,8 +378,8 @@ def show_status_command():
     """Show the current document processing status."""
     session = get_session()
     try:
-        pending_count = len(InputRecordCRUD.get_unprocessed(session))
-        processed_count = len(InputRecordCRUD.get_by_status(session, "processed"))
+        pending_count = len(InputRecordRepo.get_unprocessed(session))
+        processed_count = len(InputRecordRepo.get_by_status(session, "processed"))
         total_docs = len(DocumentRecordRepo.get_all(session))
         total_chunks = len(ChunkRecordCRUD.get_all(session))
 
