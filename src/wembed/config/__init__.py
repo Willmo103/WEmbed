@@ -52,10 +52,7 @@ def get_config_dir() -> Path:
 # Determine the active configuration directory ONCE on import.
 CONFIG_DIR = get_config_dir()
 
-
-## --- Helper Functions for Loading Satellite JSON Files ---
-
-
+# region: Helper functions to load satellite JSON files
 def _load_json_from_config_dir(filename: str, default: Any) -> Any:
     """Loads a specific JSON file from the config dir, with a default fallback."""
     file_path = CONFIG_DIR / filename
@@ -64,7 +61,7 @@ def _load_json_from_config_dir(filename: str, default: Any) -> Any:
             return json.load(f)
     return default
 
-
+# --- Helpers to load specific satellite config files ---
 def load_headers() -> Dict[str, str]:
     return _load_json_from_config_dir("headers.json", default={})
 
@@ -79,11 +76,9 @@ def load_ignore_parts() -> List[str]:
 
 def load_md_xref() -> Dict[str, Any]:
     return _load_json_from_config_dir("md_xref.json", default={})
+#- endregion
 
-
-## --- Pydantic Settings Class ---
-
-
+# --- Main AppConfig class ---
 class AppConfig(BaseSettings):
     """
     Loads application settings from `appconfig.json` located in the
@@ -132,3 +127,4 @@ class AppConfig(BaseSettings):
         # Allow extra fields in the JSON file to be ignored
         extra="ignore",
     )
+#- endregion
