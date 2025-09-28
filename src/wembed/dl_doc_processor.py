@@ -15,7 +15,7 @@ from wembed.cli.doc_processor_cli import doc_processor_cli
 
 from .config import AppConfig
 from .db import (
-    ChunkRecordCRUD,
+    ChunkRecordRepo,
     ChunkRecordSchema,
     DocumentRecordRepo,
     DocumentRecordSchema,
@@ -152,7 +152,7 @@ class DlDocProcessor:
                         )
 
                         # Save chunk record
-                        ChunkRecordCRUD.create(session, chunk_record)
+                        ChunkRecordRepo.create(session, chunk_record)
 
                         # Add to collection for vector search
                         self._collection.embed(

@@ -4,7 +4,7 @@ from wembed.config import AppConfig
 from wembed.db.input_record import InputRecordRepo
 
 from ..dl_doc_processor import DlDocProcessor
-from ..db import DBService
+from ..db import DBService, DocumentRecordRepo, ChunkRecordRepo
 
 doc_processor_cli = typer.Typer(
     name="doc-processor",
@@ -59,7 +59,7 @@ def show_status_command():
         pending_count = len(InputRecordRepo.get_unprocessed(session))
         processed_count = len(InputRecordRepo.get_by_status(session, "processed"))
         total_docs = len(DocumentRecordRepo.get_all(session))
-        total_chunks = len(ChunkRecordCRUD.get_all(session))
+        total_chunks = len(ChunkRecordRepo.get_all(session))
 
         typer.echo("=== Document Processing Status ===")
         typer.echo(f"Pending inputs: {pending_count}")
