@@ -162,6 +162,7 @@ exclude = [
     ".venv",
     "dev-scripts*",
     "htmlcov",
+    "*__init__.py",
 ]
 output-file = "flake8_report.txt"
 count = true

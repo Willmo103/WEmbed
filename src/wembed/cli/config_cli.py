@@ -1,7 +1,6 @@
 # wembed/cli.py
 
 import json
-from pathlib import Path
 
 import typer
 from typing_extensions import Annotated
