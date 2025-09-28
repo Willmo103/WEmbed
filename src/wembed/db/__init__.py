@@ -30,14 +30,15 @@ from .scan_result import (
     ScanResultRecord,
     ScanResultSchema,
 )
-from .tables import (
-    IgnoreExtSchema,
-    IgnoreExtTable,
-    IgnorePartsSchema,
-    IgnorePartsTable,
-    MdXrefSchema,
-    MdXrefTable,
-)
+
+# from .tables import (
+#     IgnoreExtSchema,
+#     IgnoreExtTable,
+#     IgnorePartsSchema,
+#     IgnorePartsTable,
+#     MdXrefSchema,
+#     MdXrefTable,
+# )
 from .vault_record import VaultRecord, VaultRecordCRUD, VaultRecordSchema
 
 # Database initialization and connection management

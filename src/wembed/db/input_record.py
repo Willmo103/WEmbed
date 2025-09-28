@@ -162,7 +162,7 @@ class InputRecordRepo:
         )
         try:
             return [InputRecordSchema(**r.__dict__) for r in results]
-        except Exception as e:
+        except Exception:
             db.rollback()
             return []
 
@@ -197,10 +197,10 @@ class InputRecordRepo:
         Returns:
             List[InputRecord]: List of InputRecord objects matching the status.
         """
-        results = db.query(InputRecord).filter(InputRecord.processed == False).all()
+        results = db.query(InputRecord).filter(InputRecord.processed is False).all()
         try:
             return [InputRecordSchema(**r.__dict__) for r in results]
-        except Exception as e:
+        except Exception:
             db.rollback()
             return []
 
@@ -239,7 +239,7 @@ class InputRecordRepo:
         try:
             records = [InputRecord(**r.__dict__) for r in results]
             return [InputRecordSchema(**r.__dict__) for r in records]
-        except Exception as e:
+        except Exception:
             db.rollback()
             return []
 

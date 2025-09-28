@@ -7,7 +7,7 @@ from wembed import db as wdb
 from wembed.db import Base
 
 
-class SampleModel(Base) -> None:
+class SampleModel(Base):
     """A simple model for testing database operations."""
 
     __tablename__ = "sample_table"
