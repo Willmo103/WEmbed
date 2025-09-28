@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from ..config import app_config  # noqa
 from .base import Base
 from .chunk_record import ChunkRecord, ChunkRecordCRUD, ChunkRecordSchema
-from .document_index import DocumentIndexRepo, DocumentIndexRecord, DocumentIndexSchema
+from .document_index import DocumentIndexRecord, DocumentIndexRepo, DocumentIndexSchema
 from .document_record import (
     ChunkList,
     ChunkModel,
@@ -18,7 +18,7 @@ from .document_record import (
     DocumentRecordSchema,
     StringContentOut,
 )
-from .file_line import FileLineCRUD, FileLineRecord
+from .file_line import FileLineRepo, FileLineRecord
 from .file_record import FileLineSchema, FileRecord, FileRecordCRUD, FileRecordSchema
 from .input_record import InputOut, InputRecord, InputRecordCRUD, InputRecordSchema
 from .repo_record import RepoRecord, RepoRecordCRUD, RepoRecordSchema
@@ -243,5 +243,5 @@ __all__ = [
     # File Line
     "FileLineRecord",
     "FileLineSchema",
-    "FileLineCRUD",
+    "FileLineRepo",
 ]
