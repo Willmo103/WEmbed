@@ -7,6 +7,7 @@ from typing import Optional, List
 from uuid import uuid4
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
 from sqlalchemy import String, Text
+from pydantic import BaseModel
 
 from .base import Base
 
@@ -165,4 +166,12 @@ class PSHistoryRecordRepo:
         Returns:
             PSHistoryRecordSchema: The schema representation of the history record.
         """
-        return PSHistoryRecordSchema.from_orm(record)
+        return PSHistoryRecordSchema(
+            id=record.id,
+            command=record.command,
+            start_time=record.start_time,
+            end_time=record.end_time,
+            duration_seconds=record.duration_seconds,
+            host=record.host,
+            user=record.user
+        )

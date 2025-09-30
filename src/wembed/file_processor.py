@@ -22,7 +22,7 @@ from .db import (
     RepoRecordRepo,
     VaultRecordRepo,
 )
-from . import DBService
+from . import DbService
 
 
 def create_file_record_from_path(
@@ -220,7 +220,7 @@ def write_markdown_to_vault(file_record: FileRecordSchema, dir: Path) -> Path:
 
 
 def get_vault_files(
-    db_svc: DBService,
+    db_svc: DbService,
 ) -> Generator[tuple[Path, str, str, str], None, None]:
     """Generator that yields vault file information."""
     session = db_svc.get_session()
@@ -236,7 +236,7 @@ def get_vault_files(
 
 
 def get_repo_files(
-    db_svc: DBService,
+    db_svc: DbService,
 ) -> Generator[tuple[Path, str, str, str], None, None]:
     """Generator that yields repo file information."""
     session = db_svc.get_session()
@@ -251,7 +251,7 @@ def get_repo_files(
         session.close()
 
 
-def process_vault_files(db_svc: DBService) -> None:
+def process_vault_files(db_svc: DbService) -> None:
     """Process all vault files into FileRecords."""
     session = db_svc.get_session()
     processed_count = 0
@@ -332,7 +332,7 @@ def process_vault_files(db_svc: DBService) -> None:
         )
 
 
-def process_repo_files(db_svc: DBService) -> None:
+def process_repo_files(db_svc: DbService) -> None:
     """Process all repo files into FileRecords."""
     session = db_svc.get_session()
     processed_count = 0
