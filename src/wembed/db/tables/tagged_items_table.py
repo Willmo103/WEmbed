@@ -39,7 +39,7 @@ class TaggedItemSchema(BaseModel):
     tagged_item_source: str = Field(
         ...,
         max_length=50,
-        description="Column Name of the source table of the tagged item",
+        description="Tablename of the source table of the tagged item",
     )
     created_at: Optional[datetime] = Field(
         None, description="Timestamp when the tagged item was created"
