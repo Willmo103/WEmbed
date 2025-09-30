@@ -17,7 +17,7 @@ from .db import (
     VaultRecordRepo,
     VaultRecordSchema,
 )
-from . import DBService
+from . import DbService
 from .enums import ScanTypes
 
 
@@ -167,7 +167,7 @@ def _scan_directory(
     return results
 
 
-def store_scan_results(scan_results: list[ScanResultSchema], db_svc: DBService) -> None:
+def store_scan_results(scan_results: list[ScanResultSchema], db_svc: DbService) -> None:
     """Store scan results in the database using CRUD operations."""
     session = db_svc.get_session()
     try:
@@ -183,7 +183,7 @@ def store_scan_results(scan_results: list[ScanResultSchema], db_svc: DBService) 
 
 def convert_scan_results_to_records(
     scan_results: list[ScanResultSchema],
-    db_svc: DBService,
+    db_svc: DbService,
 ) -> None:
     """Convert scan results to Vault/Repo records based on scan type."""
     session = db_svc.get_session()

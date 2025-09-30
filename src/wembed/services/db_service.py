@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from wembed import AppConfig, Base
 
 
-class DBService:
+class DbService:
     """
     Encapsulates all database connection and initialization logic.
     It is instantiated with a configuration object.
