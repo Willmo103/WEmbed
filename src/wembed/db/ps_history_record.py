@@ -8,8 +8,8 @@ from typing import List, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel
-from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .base import Base
 
