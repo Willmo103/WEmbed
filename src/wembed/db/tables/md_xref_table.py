@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from sqlalchemy import Column, String
 
-from ..base import Base
 from ...services import DbService
+from ..base import Base
+
 
 class MdXrefTable(Base):
     __tablename__ = "_dl_md_xref"
@@ -16,7 +17,9 @@ class MdXrefSchema(BaseModel):
 
     class Config:
         """Pydantic configuration to allow population from ORM objects."""
+
         from_attributes = True
+
 
 class MdXrefController:
     """
@@ -32,8 +35,7 @@ class MdXrefController:
     def __init__(self, db_svc: DbService):
         self._db_svc = db_svc
 
-
-    def add_mapping(self, k: str, v: str) -> MdXrefSchema:
+    def create(self, k: str, v: str) -> MdXrefSchema:
         """Adds a new key-value mapping to the database."""
         with self._db_svc.get_session()() as session:
             mapping = MdXrefTable(k=k, v=v)
@@ -50,7 +52,7 @@ class MdXrefController:
                 return mapping.v
             return "plaintext"
 
-    def set_mapping(self, k: str, v: str) -> MdXrefSchema:
+    def update(self, k: str, v: str) -> MdXrefSchema:
         """Sets or updates the mapping value for a given key."""
         with self._db_svc.get_session()() as session:
             mapping = session.get(MdXrefTable, k)
@@ -63,7 +65,7 @@ class MdXrefController:
             session.refresh(mapping)
             return self.from_schema(mapping)
 
-    def delete_mapping(self, k: str) -> bool:
+    def delete(self, k: str) -> bool:
         """Deletes the mapping for a given key."""
         with self._db_svc.get_session()() as session:
             mapping = session.get(MdXrefTable, k)
@@ -77,4 +79,3 @@ class MdXrefController:
     def from_schema(mapping: MdXrefTable) -> MdXrefSchema:
         """Converts a MdXrefTable instance to its schema representation."""
         return MdXrefSchema(k=mapping.k, v=mapping.v)
-

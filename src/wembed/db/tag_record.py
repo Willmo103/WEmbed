@@ -9,9 +9,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
-from .base import Base
 from . import DbService
-from .tables.tagged_items_table import TaggedItemsTable, TaggedItemSchema
+from .base import Base
+from .tables.tagged_items_table import TaggedItemSchema, TaggedItemsTable
 
 
 class TagRecord(Base):

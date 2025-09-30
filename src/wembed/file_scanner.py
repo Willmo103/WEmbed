@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import typer
 
+from . import DbService
 from .config.ignore_ext import IGNORE_EXTENSIONS
 from .config.ignore_parts import IGNORE_PARTS
 from .db import (
@@ -17,7 +18,6 @@ from .db import (
     VaultRecordRepo,
     VaultRecordSchema,
 )
-from . import DbService
 from .enums import ScanTypes
 
 

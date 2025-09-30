@@ -11,9 +11,8 @@ from pydantic import BaseModel, Field, computed_field
 from sqlalchemy import DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .tables.tagged_items_table import TaggedItemsTable
-
 from .base import Base
+from .tables.tagged_items_table import TaggedItemsTable
 
 
 class FileRecord(Base):

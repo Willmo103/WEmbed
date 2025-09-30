@@ -11,6 +11,7 @@ import typer
 
 from wembed.db.file_line import FileLineSchema
 
+from . import DbService
 from .config import md_xref
 from .db import (
     DocumentIndexRepo,
@@ -22,7 +23,6 @@ from .db import (
     RepoRecordRepo,
     VaultRecordRepo,
 )
-from . import DbService
 
 
 def create_file_record_from_path(
