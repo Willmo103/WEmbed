@@ -8,6 +8,7 @@ dependencies = [
     "docling>=2.53.0",
     "llm>=0.27.1",
     "llm-ollama>=0.14.0",
+    "mcp[cli]>=1.15.0",
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.9",
     "pydantic-settings>=2.10.1",
@@ -38,9 +39,9 @@ Repository = "https://github.com/Willmo103/WEmbed"
 Issues = "https://github.com/Willmo103/WEmbed/issues"
 
 [project.scripts]
-cli = "wembed.cli:main"
+cli = "wembed.cli.__main__:main"
 insert-configs = "wembed.scripts.insert_configs:main"
-db = "wembed.db:main"
+
 
 [build-system]
 requires = ["uv_build>=0.8.22,<0.9.0"]
@@ -80,6 +81,7 @@ omit = [
     "*/tests/*",
     "*/test_*",
     "*/__pycache__/*",
+    "dev-scripts/*",
 ]
 
 [tool.coverage.report]
@@ -122,13 +124,13 @@ known_first_party = ["wembed"]
 
 [tool.mypy]
 python_version = "3.13"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
-no_implicit_optional = true
+no_implicit_optional = false
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
@@ -147,7 +149,7 @@ module = [
 ignore_missing_imports = true
 
 [tool.flake8]
-max-line-length = 88
+max-line-length = 135
 extend-ignore = ["E203", "W503"]
 exclude = [
     ".git",
@@ -157,7 +159,14 @@ exclude = [
     "*.egg-info",
     "build",
     "dist",
+    ".venv",
+    "dev-scripts*",
+    "htmlcov",
+    "*__init__.py",
 ]
+output-file = "flake8_report.txt"
+count = true
+statistics = true
 
 [dependency-groups]
 dev = [
@@ -170,4 +179,5 @@ dev = [
     "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.15.1",
+    "watchfiles>=1.1.0",
 ]

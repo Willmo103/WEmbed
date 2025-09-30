@@ -37,7 +37,7 @@ class ChunkRecordSchema(BaseModel):
         from_attributes = True
 
 
-class ChunkRecordCRUD:
+class ChunkRecordRepo:
     @staticmethod
     def create(db: Session, chunk: ChunkRecordSchema) -> ChunkRecord:
         db_record = ChunkRecord(
@@ -85,7 +85,7 @@ class ChunkRecordCRUD:
         )
         try:
             records = [ChunkRecord(**r.__dict__) for r in results] if results else []
-            return [ChunkRecordCRUD.to_schema(r) for r in records] if results else []
+            return [ChunkRecordRepo.to_schema(r) for r in records] if results else []
         except Exception:
             return []
 
@@ -100,22 +100,42 @@ class ChunkRecordCRUD:
         )
 
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[ChunkRecord]:
-        return db.query(ChunkRecord).offset(skip).limit(limit).all()
+    def get_all(
+        db: Session, skip: int = 0, limit: int = 100
+    ) -> List[ChunkRecordSchema]:
+        _results = db.query(ChunkRecord).offset(skip).limit(limit).all()
+        try:
+            records = [ChunkRecord(**r.__dict__) for r in _results]
+            return (
+                [ChunkRecordRepo.to_schema(record) for record in records]
+                if _results
+                else []
+            )
+        except Exception:
+            return []
 
     @staticmethod
-    def search_by_text(db: Session, search_text: str) -> List[ChunkRecord]:
-        return (
+    def search_by_text(db: Session, search_text: str) -> List[ChunkRecordSchema]:
+        _results = (
             db.query(ChunkRecord)
             .filter(ChunkRecord.text_chunk.contains(search_text))
             .all()
         )
+        try:
+            records = [ChunkRecord(**r.__dict__) for r in _results]
+            return (
+                [ChunkRecordRepo.to_schema(record) for record in records]
+                if records
+                else []
+            )
+        except Exception:
+            return []
 
     @staticmethod
     def update(
         db: Session, chunk_id: int, chunk: ChunkRecordSchema
     ) -> Optional[ChunkRecord]:
-        db_record = ChunkRecordCRUD.get_by_id(db, chunk_id)
+        db_record = ChunkRecordRepo.get_by_id(db, chunk_id)
         if db_record:
             for key, value in chunk.model_dump(
                 exclude_unset=True, exclude={"id"}
@@ -127,7 +147,7 @@ class ChunkRecordCRUD:
 
     @staticmethod
     def delete(db: Session, chunk_id: int) -> bool:
-        db_record = ChunkRecordCRUD.get_by_id(db, chunk_id)
+        db_record = ChunkRecordRepo.get_by_id(db, chunk_id)
         if db_record:
             db.delete(db_record)
             db.commit()

@@ -7,28 +7,74 @@ from uuid import uuid4
 
 import typer
 
-from .config import app_config
+from wembed.constants.ignore_ext import IGNORE_EXTENSIONS
+from wembed.constants.ignore_parts import IGNORE_PARTS
+
+from . import DbService
 from .db import (
-    RepoRecordCRUD,
+    RepoRecordRepo,
     RepoRecordSchema,
-    ScanResultCRUD,
+    ScanResult_Controller,
     ScanResultSchema,
-    VaultRecordCRUD,
+    VaultRecordRepo,
     VaultRecordSchema,
-    get_session,
 )
 from .enums import ScanTypes
 
 
-def _iter_files(base: Path) -> Iterable[Path]:
-    """Yields all files in a directory and its subdirectories."""
+def iter_files_from_pl_path(base: Path) -> Iterable[Path]:
+    """
+    Yields all files in a directory and its subdirectories.
+    Args:
+        base (pathlib.Path): A pathlib.Path object representing the base directory to iterate.
+    Yields:
+        Iterable[pathlib.Path]: An iterable of pathlib.Path objects for each file found.
+    """
     for item in base.rglob("*"):
         if item.is_file():
             yield item
 
 
-def _should_skip(item: Path, parts: Set[str] = app_config.ignore_parts) -> bool:
-    """Checks if a file's path contains any ignored segments."""
+def iter_git_tracked_files(base: Path) -> Iterable[Path]:
+    """
+    Yields all git-tracked files in a directory and its subdirectories.
+    Args:
+        base (pathlib.Path): A pathlib.Path object representing the base directory to iterate.
+    Yields:
+        Iterable[pathlib.Path]: An iterable of pathlib.Path objects for each git-tracked file found.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(base), "ls-files"],
+            capture_output=True,
+            text=True,
+            check=True,
+            encoding="utf-8",
+        )
+        file_paths = out.stdout.splitlines()
+        for rel_path in file_paths:
+            p = base / rel_path
+            if p.is_file():
+                yield p
+    except Exception:
+        # Fallback for non-git dirs or errors
+        yield from iter_files_from_pl_path(base)
+
+
+def path_has_ignored_part(item: Path, parts: Set[str] = IGNORE_PARTS) -> bool:
+    """
+    Checks each pathlib.Path().part of `item` against each str in `parts`
+    and returns True if any match. The default for 'parts' comes from
+    [src/wembed/config/ignore_parts.py] if the
+    IGNORE_PARTS environment variable is not set.
+
+    Args:
+        item (pathlib.Path): The file or directory path to check.
+        parts (Set[str]): A set of path segments to ignore.
+
+    Returns:
+        bool: True if any part of the path matches an ignored segment, False otherwise.
+    """
     return any(seg in parts for seg in item.parts)
 
 
@@ -42,14 +88,14 @@ def _scan_directory(
     results = []
     base = Path(path).resolve()
 
-    ignore_list = set(app_config.ignore_parts) | {".git"}
+    ignore_list = set(IGNORE_PARTS) | {".git"}
 
     # --- Logic for REPO and VAULT scans (marker-based) ---
     if scan_type in [ScanTypes.REPO, ScanTypes.VAULT]:
         marker_pattern = ".git" if scan_type == ScanTypes.REPO else ".obsidian"
 
         for marker in base.rglob(marker_pattern):
-            if not marker.is_dir() or _should_skip(marker.parent, ignore_list):
+            if not marker.is_dir() or path_has_ignored_part(marker.parent, ignore_list):
                 continue
 
             root = marker.parent.resolve()
@@ -71,26 +117,30 @@ def _scan_directory(
                 except Exception:
                     # Fallback for non-git dirs or errors
                     file_paths = [
-                        f.relative_to(root).as_posix() for f in _iter_files(root)
+                        f.relative_to(root).as_posix()
+                        for f in iter_files_from_pl_path(root)
                     ]
             # All markdown files for VAULT scan
             elif scan_type == ScanTypes.VAULT:
                 file_paths = [
                     f.relative_to(root).as_posix()
                     for f in root.rglob("*.md")
-                    if not _should_skip(f, ignore_list)
+                    if not path_has_ignored_part(f, ignore_list)
                 ]
             # All files for non-tracked REPO scan
             else:
-                file_paths = [f.relative_to(root).as_posix() for f in _iter_files(root)]
+                file_paths = [
+                    f.relative_to(root).as_posix()
+                    for f in iter_files_from_pl_path(root)
+                ]
 
             # Common filtering logic
             for rel_path in file_paths:
                 p = root / rel_path
                 if not (
-                    _should_skip(p, ignore_list)
-                    or p.suffix in app_config.ignore_extensions
-                    or p.name in app_config.ignore_extensions
+                    path_has_ignored_part(p, ignore_list)
+                    or p.suffix in IGNORE_EXTENSIONS
+                    or p.name in IGNORE_EXTENSIONS
                 ):
                     files.add(rel_path)
 
@@ -120,8 +170,8 @@ def _scan_directory(
         root = base
         files = set()
         scan_start = datetime.now(tz=timezone.utc)
-        for item in _iter_files(root):
-            if not _should_skip(item, ignore_list):
+        for item in iter_files_from_pl_path(root):
+            if not path_has_ignored_part(item, ignore_list):
                 files.add(item.relative_to(root).as_posix())
 
         scan_end = datetime.now(tz=timezone.utc)
@@ -144,12 +194,12 @@ def _scan_directory(
     return results
 
 
-def store_scan_results(scan_results: list[ScanResultSchema]) -> None:
+def store_scan_results(scan_results: list[ScanResultSchema], db_svc: DbService) -> None:
     """Store scan results in the database using CRUD operations."""
-    session = get_session()
+    session = db_svc.get_session()
     try:
         for result in scan_results:
-            ScanResultCRUD.create(session, result)
+            ScanResult_Controller.create(session, result)
         typer.echo(f"Stored {len(scan_results)} scan results.")
     except Exception as e:
         typer.secho(f"Error storing scan results: {e}", fg=typer.colors.RED)
@@ -160,9 +210,10 @@ def store_scan_results(scan_results: list[ScanResultSchema]) -> None:
 
 def convert_scan_results_to_records(
     scan_results: list[ScanResultSchema],
+    db_svc: DbService,
 ) -> None:
     """Convert scan results to Vault/Repo records based on scan type."""
-    session = get_session()
+    session = db_svc.get_session()
     try:
         for result in scan_results:
             if result.scan_type == ScanTypes.VAULT.value:
@@ -174,7 +225,7 @@ def convert_scan_results_to_records(
                     file_count=len(result.files) if result.files else 0,
                     indexed_at=datetime.now(timezone.utc),
                 )
-                VaultRecordCRUD.create(session, vault_record)
+                VaultRecordRepo.create(session, vault_record)
 
             elif result.scan_type == ScanTypes.REPO.value:
                 repo_record = RepoRecordSchema(
@@ -185,7 +236,7 @@ def convert_scan_results_to_records(
                     file_count=len(result.files) if result.files else 0,
                     indexed_at=datetime.now(timezone.utc),
                 )
-                RepoRecordCRUD.create(session, repo_record)
+                RepoRecordRepo.create(session, repo_record)
 
         typer.echo(f"Converted {len(scan_results)} scan results to records.")
     except Exception as e:
@@ -211,76 +262,3 @@ def scan_vaults(path: str) -> list[ScanResultSchema]:
 def scan_list(path: str) -> list[ScanResultSchema]:
     """Return a single ScanResult for a simple directory listing."""
     return _scan_directory(path, scan_type=ScanTypes.LIST)
-
-
-# --- Typer CLI Application ---
-
-file_scanner_cli = typer.Typer(
-    name="scan", no_args_is_help=True, help="File Scanning Commands"
-)
-
-
-@file_scanner_cli.command(name="repos", help="Scan for git repos", no_args_is_help=True)
-def scan_repos_command(
-    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
-):
-    """Scan for repositories and store the results."""
-    results = scan_repos(path)
-    if results:
-        store_scan_results(results)
-        convert_scan_results_to_records(results)
-        typer.echo(f"Found and processed {len(results)} repos.")
-    else:
-        typer.secho("No repositories found.", fg=typer.colors.YELLOW)
-
-
-@file_scanner_cli.command(
-    name="vaults", help="Scan for Obsidian vaults", no_args_is_help=True
-)
-def scan_vaults_command(
-    path: str = typer.Argument(..., help="Path to scan", dir_okay=True, file_okay=False)
-):
-    """Scan for Obsidian vaults and store the results."""
-    results = scan_vaults(path)
-    if results:
-        store_scan_results(results)
-        convert_scan_results_to_records(results)
-        typer.echo(f"Found and processed {len(results)} vaults.")
-    else:
-        typer.secho("No vaults found.", fg=typer.colors.YELLOW)
-
-
-@file_scanner_cli.command(
-    name="list", help="List all files in a directory", no_args_is_help=True
-)
-def list_files_command(
-    path: str = typer.Argument(
-        ..., help="Path to list files", dir_okay=True, file_okay=False
-    ),
-    json: bool = typer.Option(False, "--json", "-j", help="Output as JSON."),
-    nl: bool = typer.Option(
-        False, "--nl", "-n", help="Output as newline-delimited list."
-    ),
-):
-    """List files in a directory and optionally store results."""
-    results = scan_list(path)
-    if not results:
-        typer.secho("No files found.", fg=typer.colors.YELLOW)
-        return
-
-    # Store results
-    store_scan_results(results)
-
-    # Format output
-    result = results[0]  # LIST scan returns only one result
-    if json:
-        typer.echo(result.model_dump_json(indent=2))
-    elif nl:
-        typer.echo("\n".join(result.files))
-    else:
-        # Default output is also newline-delimited
-        typer.echo("\n".join(result.files))
-
-
-if __name__ == "__main__":
-    file_scanner_cli()

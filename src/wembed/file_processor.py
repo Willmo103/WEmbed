@@ -9,18 +9,52 @@ from uuid import uuid4
 
 import typer
 
-from .config import app_config
+from wembed.db.file_line import FileLineSchema
+
+from . import DbService
+from .constants import md_xref
 from .db import (
-    DocumentIndexCRUD,
+    DocumentIndexRepo,
     DocumentIndexSchema,
-    FileRecordCRUD,
+    FileRecordRepo,
     FileRecordSchema,
-    InputRecordCRUD,
+    InputRecordRepo,
     InputRecordSchema,
-    RepoRecordCRUD,
-    VaultRecordCRUD,
-    get_session,
+    RepoRecordRepo,
+    VaultRecordRepo,
 )
+
+
+def format_image_content_to_embedded_md_image(
+    image_bytes: bytes, mime_type: str
+) -> str:
+    """Formats image bytes to an embedded markdown image string."""
+    import base64
+
+    encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+    return f"![Embedded Image](data:{mime_type};base64,{encoded_image})"
+
+
+def fromat_image_exif_to_md_table(img_path: Path) -> Optional[str]:
+    """Extracts EXIF metadata from an image and formats it as a markdown table."""
+    from PIL import Image
+    from PIL.ExifTags import TAGS
+
+    try:
+        image = Image.open(img_path)
+        exif_data = image.getexif()
+        if not exif_data:
+            return "No EXIF data found."
+
+        exif_table = "| Tag | Value |\n|-----|-------|\n"
+        for tag_id, value in exif_data.items():
+            tag = TAGS.get(tag_id, tag_id)
+            exif_table += f"| {tag} | {value} |\n"
+
+        return exif_table
+    except Exception:  # as e:
+        # log error
+        return None
 
 
 def create_file_record_from_path(
@@ -103,6 +137,31 @@ def create_file_record_from_path(
         return None
 
 
+def get_filelines_list_from_file_record(
+    file_record: FileRecordSchema,
+) -> list[FileLineSchema]:
+    """
+    Genetates a list of FileLineSchema objects from a FileRecordSchema.
+    returns [] if file_record.content_text is None or empty.
+    """
+    if not file_record.content_text:
+        return []
+
+    lines = file_record.content_text.splitlines()
+    filelines = []
+    for idx, line in enumerate(lines, start=1):
+        fileline = FileLineSchema(
+            id=uuid4().hex,
+            file_id=file_record.id,
+            line_number=idx,
+            content=line,
+            created_at=datetime.now(timezone.utc),
+        )
+        filelines.append(fileline)
+
+    return filelines
+
+
 def generate_markdown_content(file_record: FileRecordSchema) -> str:
     """Generate markdown content for a file record."""
     return f"""---
@@ -149,19 +208,35 @@ version: {file_record.version}
 
 ## File Content
 
-```{app_config.md_xref.get(file_record.suffix, "") if hasattr(app_config, 'md_xref') else ""}
+```{md_xref.get(file_record.suffix, "")}
 {file_record.content_text or "<Binary or non-text content>"}
 ```
 """
 
 
-def write_markdown_to_vault(
-    file_record: FileRecordSchema, markdown_content: str
-) -> Path:
+def generate_markdown_content_from_path(
+    file_path: Path,
+    source_type: Optional[str] = "unknown",
+    source_name: Optional[str] = "unknown",
+) -> str:
+    """Generate markdown content directly from a file path."""
+    file_record = create_file_record_from_path(
+        file_path,
+        source_type=source_type,
+        source_name=source_name,
+        source_root=str(file_path.parent),
+        relative_path=file_path.name,
+    )
+    if file_record:
+        return generate_markdown_content(file_record)
+    return "# Error generating markdown content"
+
+
+def write_markdown_to_vault(file_record: FileRecordSchema, dir: Path) -> Path:
     """Write markdown content to the vault directory."""
     # Create the destination path in the vault
     dest_path = (
-        app_config.md_vault
+        dir
         / file_record.source_type
         / file_record.source_name
         / f"{file_record.relative_path}.md"
@@ -171,18 +246,20 @@ def write_markdown_to_vault(
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write the markdown file
-    dest_path.write_text(markdown_content, encoding="utf-8")
+    dest_path.write_text(file_record.markdown, encoding="utf-8")
 
     return dest_path
 
 
-def get_vault_files() -> Generator[tuple[Path, str, str, str], None, None]:
+def get_vault_files(
+    db_svc: DbService,
+) -> Generator[tuple[Path, str, str, str], None, None]:
     """Generator that yields vault file information."""
-    session = get_session()
+    session = db_svc.get_session()
     try:
-        vaults = VaultRecordCRUD.get_all(session)
+        vaults = VaultRecordRepo.get_all(session)
         for vault in vaults:
-            vault_schema = VaultRecordCRUD.to_schema(vault)
+            vault_schema = VaultRecordRepo.to_schema(vault)
             for file_path in vault_schema.files or []:
                 full_path = Path(vault_schema.root_path) / file_path
                 yield full_path, "vault", vault_schema.name, vault_schema.root_path
@@ -190,13 +267,15 @@ def get_vault_files() -> Generator[tuple[Path, str, str, str], None, None]:
         session.close()
 
 
-def get_repo_files() -> Generator[tuple[Path, str, str, str], None, None]:
+def get_repo_files(
+    db_svc: DbService,
+) -> Generator[tuple[Path, str, str, str], None, None]:
     """Generator that yields repo file information."""
-    session = get_session()
+    session = db_svc.get_session()
     try:
-        repos = RepoRecordCRUD.get_all(session)
+        repos = RepoRecordRepo.get_all(session)
         for repo in repos:
-            repo_schema = RepoRecordCRUD.to_schema(repo)
+            repo_schema = RepoRecordRepo.to_schema(repo)
             for file_path in repo_schema.files or []:
                 full_path = Path(repo_schema.root_path) / file_path
                 yield full_path, "repo", repo_schema.name, repo_schema.root_path
@@ -204,9 +283,9 @@ def get_repo_files() -> Generator[tuple[Path, str, str, str], None, None]:
         session.close()
 
 
-def process_vault_files() -> None:
+def process_vault_files(db_svc: DbService) -> None:
     """Process all vault files into FileRecords."""
-    session = get_session()
+    session = db_svc.get_session()
     processed_count = 0
     error_count = 0
 
@@ -222,7 +301,7 @@ def process_vault_files() -> None:
                 relative_path = str(file_path.relative_to(source_root))
 
                 # Check if file record already exists
-                existing = FileRecordCRUD.get_by_sha256(
+                existing = FileRecordRepo.get_by_sha256(
                     session, hashlib.sha256(file_path.read_bytes()).hexdigest()
                 )
                 if existing:
@@ -246,7 +325,7 @@ def process_vault_files() -> None:
                 file_record.markdown = markdown_content
 
                 # Save to database
-                FileRecordCRUD.create(session, file_record)
+                FileRecordRepo.create(session, file_record)
 
                 # Write markdown to vault
                 vault_path = write_markdown_to_vault(file_record, markdown_content)
@@ -256,7 +335,7 @@ def process_vault_files() -> None:
                     file_id=file_record.id,
                     last_rendered=datetime.now(timezone.utc),
                 )
-                DocumentIndexCRUD.create(session, doc_index)
+                DocumentIndexRepo.create(session, doc_index)
 
                 # Add to input processing queue
                 input_record = InputRecordSchema(
@@ -264,7 +343,7 @@ def process_vault_files() -> None:
                     status="pending",
                     input_file_id=file_record.id,
                 )
-                InputRecordCRUD.create(session, input_record)
+                InputRecordRepo.create(session, input_record)
 
                 processed_count += 1
                 typer.echo(f"Processed: {file_path} -> {vault_path}")
@@ -285,9 +364,9 @@ def process_vault_files() -> None:
         )
 
 
-def process_repo_files() -> None:
+def process_repo_files(db_svc: DbService) -> None:
     """Process all repo files into FileRecords."""
-    session = get_session()
+    session = db_svc.get_session()
     processed_count = 0
     error_count = 0
 
@@ -297,14 +376,14 @@ def process_repo_files() -> None:
             source_type,
             source_name,
             source_root,
-        ) in get_repo_files():
+        ) in get_repo_files(db_svc):
             try:
                 # Calculate relative path
                 relative_path = str(file_path.relative_to(source_root))
 
                 # Check if file record already exists
                 if file_path.exists():
-                    existing = FileRecordCRUD.get_by_sha256(
+                    existing = FileRecordRepo.get_by_sha256(
                         session,
                         hashlib.sha256(file_path.read_bytes()).hexdigest(),
                     )
@@ -329,7 +408,7 @@ def process_repo_files() -> None:
                 file_record.markdown = markdown_content
 
                 # Save to database
-                FileRecordCRUD.create(session, file_record)
+                FileRecordRepo.create(session, file_record)
 
                 # Write markdown to vault
                 vault_path = write_markdown_to_vault(file_record, markdown_content)
@@ -339,7 +418,7 @@ def process_repo_files() -> None:
                     file_id=file_record.id,
                     last_rendered=datetime.now(timezone.utc),
                 )
-                DocumentIndexCRUD.create(session, doc_index)
+                DocumentIndexRepo.create(session, doc_index)
 
                 # Add to input processing queue
                 input_record = InputRecordSchema(
@@ -347,7 +426,7 @@ def process_repo_files() -> None:
                     status="pending",
                     input_file_id=file_record.id,
                 )
-                InputRecordCRUD.create(session, input_record)
+                InputRecordRepo.create(session, input_record)
 
                 processed_count += 1
                 typer.echo(f"Processed: {file_path} -> {vault_path}")
@@ -369,59 +448,3 @@ def process_repo_files() -> None:
 
 
 # --- Typer CLI Application ---
-
-file_processor_cli = typer.Typer(
-    name="process", no_args_is_help=True, help="File Processing Commands"
-)
-
-
-@file_processor_cli.command(
-    name="vaults", help="Process all vault files into FileRecords"
-)
-def process_vaults_command():
-    """Process all scanned vault files."""
-    typer.echo("Starting vault file processing...")
-    process_vault_files()
-
-
-@file_processor_cli.command(
-    name="repos", help="Process all repo files into FileRecords"
-)
-def process_repos_command():
-    """Process all scanned repository files."""
-    typer.echo("Starting repository file processing...")
-    process_repo_files()
-
-
-@file_processor_cli.command(name="all", help="Process all files (vaults and repos)")
-def process_all_command():
-    """Process all scanned files."""
-    typer.echo("Starting processing of all files...")
-    process_vault_files()
-    process_repo_files()
-    typer.echo("All file processing complete!")
-
-
-@file_processor_cli.command(name="status", help="Show processing status")
-def show_status_command():
-    """Show the current processing status."""
-    session = get_session()
-    try:
-        # Count records
-        vault_count = len(VaultRecordCRUD.get_all(session))
-        repo_count = len(RepoRecordCRUD.get_all(session))
-        file_count = len(FileRecordCRUD.get_all(session))
-        pending_inputs = len(InputRecordCRUD.get_by_status(session, "pending"))
-
-        typer.echo("Processing Status:")
-        typer.echo(f"  Vaults discovered: {vault_count}")
-        typer.echo(f"  Repositories discovered: {repo_count}")
-        typer.echo(f"  Files processed: {file_count}")
-        typer.echo(f"  Pending document processing: {pending_inputs}")
-
-    finally:
-        session.close()
-
-
-if __name__ == "__main__":
-    file_processor_cli()

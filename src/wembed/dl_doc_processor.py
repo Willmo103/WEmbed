@@ -11,16 +11,16 @@ from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from docling_core.types.doc.document import DoclingDocument
 
-from .config import app_config
+from .config.model import AppConfig
 from .db import (
-    ChunkRecordCRUD,
+    ChunkRecordRepo,
     ChunkRecordSchema,
-    DocumentRecordCRUD,
+    DocumentRecordRepo,
     DocumentRecordSchema,
-    FileRecordCRUD,
-    InputRecordCRUD,
-    get_session,
+    FileRecordRepo,
+    InputRecordRepo,
 )
+from .services.db_service import DbService
 
 MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 
@@ -28,20 +28,20 @@ MAX_PROCESSING_SIZE = 1024 * 1024 * 3  # 3 MB
 class DlDocProcessor:
     """Document processor for converting files to DoclingDocuments and creating embeddings."""
 
-    def __init__(self):
-        self._embedder = llm.get_embedding_model(app_config.embed_model_name)
+    def __init__(self, config: AppConfig):
+        self._embedder = llm.get_embedding_model(config.embed_model_name)
         self._tokenizer = HuggingFaceTokenizer.from_pretrained(
-            app_config.embed_model_id, app_config.max_tokens
+            config.embed_model_id, config.max_tokens
         )
         self._converter = DocumentConverter()
-        self._headers = app_config.headers
+        self._headers = config.headers
         self._chunker = HybridChunker(
             tokenizer=self._tokenizer,
         )
         self._collection = llm.Collection(
             name="chunk_embeddings",
             model=self._embedder,
-            db=app_config.local_db,
+            db=config.local_db,
         )
 
     def _convert_webpage(
@@ -57,7 +57,7 @@ class DlDocProcessor:
         return self._converter.convert(source=src).document
 
     def convert_source(
-        self, src: str, input_record_id: Optional[int] = None
+        self, src: str, input_record_id: Optional[int] = None, db_svc: DbService = None
     ) -> Optional[int]:
         """
         Convert a source (URL or file path) to a DoclingDocument and process chunks.
@@ -69,7 +69,7 @@ class DlDocProcessor:
         Returns:
             Document record ID if successful, None if failed
         """
-        session = get_session()
+        session = db_svc.get_session()
 
         try:
             # Convert source to DoclingDocument
@@ -85,7 +85,7 @@ class DlDocProcessor:
             if not doc:
                 typer.secho(f"Failed to convert source: {src}", fg=typer.colors.RED)
                 if input_record_id:
-                    InputRecordCRUD.add_error(
+                    InputRecordRepo.add_error(
                         session,
                         input_record_id,
                         f"Failed to convert source: {src}",
@@ -109,7 +109,7 @@ class DlDocProcessor:
             )
 
             # Save document record to get ID
-            db_doc_record = DocumentRecordCRUD.create(session, doc_record)
+            db_doc_record = DocumentRecordRepo.create(session, doc_record)
             doc_id = db_doc_record.id
             typer.echo(f"Created document record with ID: {doc_id}")
 
@@ -150,7 +150,7 @@ class DlDocProcessor:
                         )
 
                         # Save chunk record
-                        ChunkRecordCRUD.create(session, chunk_record)
+                        ChunkRecordRepo.create(session, chunk_record)
 
                         # Add to collection for vector search
                         self._collection.embed(
@@ -170,7 +170,7 @@ class DlDocProcessor:
 
                 chunks_data = str([chunk.model_dump_json() for chunk in chunks])
                 # Update document with chunks_json
-                DocumentRecordCRUD.update_chunks(session, doc_id, chunks_data)
+                DocumentRecordRepo.update_chunks(session, doc_id, chunks_data)
 
                 typer.echo(
                     f"\nProcessed {total_chunks - len(errors)} chunks successfully"
@@ -191,9 +191,9 @@ class DlDocProcessor:
                 if errors:
                     # Add errors but mark as processed
                     for error in errors:
-                        InputRecordCRUD.add_error(session, input_record_id, error)
+                        InputRecordRepo.add_error(session, input_record_id, error)
 
-                InputRecordCRUD.mark_processed(session, input_record_id, doc_id)
+                InputRecordRepo.mark_processed(session, input_record_id, doc_id)
                 typer.echo(f"Updated input record {input_record_id}")
 
             return doc_id
@@ -203,20 +203,22 @@ class DlDocProcessor:
             typer.secho(error_msg, fg=typer.colors.RED)
 
             if input_record_id:
-                InputRecordCRUD.add_error(session, input_record_id, error_msg)
+                InputRecordRepo.add_error(session, input_record_id, error_msg)
 
             return None
 
         finally:
             session.close()
 
-    def process_file_record(self, file_record_id: str) -> Optional[int]:
+    def process_file_record(
+        self, file_record_id: str, db_svc: DbService
+    ) -> Optional[int]:
         """Process a file record by converting its markdown to a document."""
-        session = get_session()
+        session = db_svc.get_session()
 
         try:
             # Get file record
-            file_record_db = FileRecordCRUD.get_by_id(session, file_record_id)
+            file_record_db = FileRecordRepo.get_by_id(session, file_record_id)
             if not file_record_db:
                 typer.secho(
                     f"File record {file_record_id} not found",
@@ -224,7 +226,7 @@ class DlDocProcessor:
                 )
                 return None
 
-            file_record = FileRecordCRUD.to_schema(file_record_db)
+            file_record = FileRecordRepo.to_schema(file_record_db)
 
             # Check if we have markdown content
             if not file_record.markdown:
@@ -248,15 +250,15 @@ class DlDocProcessor:
 
             try:
                 # Find associated input record
-                input_record_db = InputRecordCRUD.get_by_file_id(
+                input_record_db = InputRecordRepo.get_by_file_id(
                     session, file_record_id
                 )
-                input_record_id = input_record_db.id if input_record_db else None
+                input_record_id = int(input_record_db.id) if input_record_db else None
 
                 # Convert the markdown file
                 result = self.convert_source(str(temp_md_path), input_record_id)
                 if result:
-                    InputRecordCRUD.mark_processed(session, input_record_db.id)
+                    InputRecordRepo.mark_processed(session, input_record_id, result)
                 return result
 
             finally:
@@ -274,12 +276,12 @@ class DlDocProcessor:
         finally:
             session.close()
 
-    def process_pending_inputs(self) -> None:
+    def process_pending_inputs(self, db_svc: DbService) -> None:
         """Process all pending input records."""
-        session = get_session()
+        session = db_svc.get_session()
 
         try:
-            pending_inputs = InputRecordCRUD.get_unprocessed(session)
+            pending_inputs = InputRecordRepo.get_unprocessed(session)
             total_pending = len(pending_inputs)
 
             if not pending_inputs:
@@ -292,7 +294,7 @@ class DlDocProcessor:
             error_count = 0
 
             for i, input_record_db in enumerate(pending_inputs):
-                input_record = InputRecordCRUD.to_schema(input_record_db)
+                input_record = InputRecordRepo.to_schema(input_record_db)
                 typer.echo(
                     f"Processing input {i + 1}/{total_pending} (ID: {input_record.id})"
                 )
@@ -317,7 +319,7 @@ class DlDocProcessor:
                         f"Error processing input {input_record.id}: {e}",
                         fg=typer.colors.RED,
                     )
-                    InputRecordCRUD.add_error(session, input_record.id, str(e))
+                    InputRecordRepo.add_error(session, input_record.id, str(e))
                     error_count += 1
 
             typer.echo(
@@ -326,72 +328,3 @@ class DlDocProcessor:
 
         finally:
             session.close()
-
-
-# CLI Interface
-doc_processor_cli = typer.Typer(
-    name="doc-processor",
-    help="Document processing commands",
-    no_args_is_help=True,
-)
-
-
-@doc_processor_cli.command(name="convert", help="Convert a single source (URL or file)")
-def convert_source_command(
-    source: str = typer.Argument(..., help="Source URL or file path to convert"),
-) -> None:
-    """Convert a single source to a DoclingDocument."""
-    processor = DlDocProcessor()
-    result = processor.convert_source(source)
-
-    if result:
-        typer.echo(f"Successfully processed source. Document ID: {result}")
-    else:
-        typer.secho("Failed to process source", fg=typer.colors.RED)
-
-
-@doc_processor_cli.command(
-    name="process-pending", help="Process all pending input records"
-)
-def process_pending_command():
-    """Process all pending input records in the database."""
-    processor = DlDocProcessor()
-    processor.process_pending_inputs()
-
-
-@doc_processor_cli.command(name="process-file", help="Process a specific file record")
-def process_file_command(
-    file_id: str = typer.Argument(..., help="File record ID to process"),
-):
-    """Process a specific file record by ID."""
-    processor = DlDocProcessor()
-    result = processor.process_file_record(file_id)
-
-    if result:
-        typer.echo(f"Successfully processed file. Document ID: {result}")
-    else:
-        typer.secho("Failed to process file", fg=typer.colors.RED)
-
-
-@doc_processor_cli.command(name="status", help="Show document processing status")
-def show_status_command():
-    """Show the current document processing status."""
-    session = get_session()
-    try:
-        pending_count = len(InputRecordCRUD.get_unprocessed(session))
-        processed_count = len(InputRecordCRUD.get_by_status(session, "processed"))
-        total_docs = len(DocumentRecordCRUD.get_all(session))
-        total_chunks = len(ChunkRecordCRUD.get_all(session))
-
-        typer.echo("=== Document Processing Status ===")
-        typer.echo(f"Pending inputs: {pending_count}")
-        typer.echo(f"Processed inputs: {processed_count}")
-        typer.echo(f"Total documents: {total_docs}")
-        typer.echo(f"Total chunks: {total_chunks}")
-
-    finally:
-        session.close()
-
-
-if __name__ == "__main__":
-    doc_processor_cli()

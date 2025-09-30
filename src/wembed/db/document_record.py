@@ -11,6 +11,23 @@ from .base import Base
 
 
 class DocumentRecord(Base):
+    """
+    SQLAlchemy model for documents.
+    Attributes:
+    - id (int): Unique identifier for the document.
+    - source (str): The source of the document (e.g., file path, URL).
+    - source_type (str): The type of the source (e.g., 'file', 'url').
+    - source_ref (Optional[int]): Reference ID to another related entity (e.g., input ID).
+    - dl_doc (Optional[str]): The original document content in string format.
+    - markdown (Optional[str]): The document content in markdown format.
+    - html (Optional[str]): The document content in HTML format.
+    - text (Optional[str]): The plain text content of the document.
+    - doctags (Optional[str]): Any tags associated with the document.
+    - chunks_json (Optional[List[BaseChunk]]): List of chunks derived from the document.
+    - created_at (datetime): Timestamp when the document was created.
+    - updated_at (Optional[datetime]): Timestamp when the document was last updated.
+    """
+
     __tablename__ = "dl_documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -52,6 +69,8 @@ class DocumentRecordSchema(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -61,6 +80,8 @@ class ChunkModel(BaseModel):
     embedding: List[float]
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -68,6 +89,8 @@ class ChunkList(BaseModel):
     chunks: List[ChunkModel]
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -86,6 +109,8 @@ class DocumentOut(BaseModel):
     updated_at: Optional[str] = None
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
@@ -97,12 +122,45 @@ class StringContentOut(BaseModel):
     content: Optional[str] = None
 
     class Config:
+        """Configure Pydantic to work with ORM objects."""
+
         from_attributes = True
 
 
-class DocumentRecordCRUD:
+class DocumentRecordRepo:
+    """
+    Repository class for DocumentRecord entities.
+    Provides methods for creating, retrieving, updating, and deleting document records.
+
+    Methods:
+    - create: Create a new document record.
+    - get_by_id: Retrieve a document by its ID.
+    - get_by_source: Retrieve a document by its source.
+    - get_by_source_type: Retrieve documents by their source type.
+    - get_by_source_ref: Retrieve a document by its source reference ID.
+    - search_by_text: Search documents by text content.
+    - search_by_markdown: Search documents by markdown content.
+    - get_all: Fetch all documents with pagination.
+    - update: Update a document by its ID.
+    - update_text_content: Update the text content of a document by its ID.
+    - update_chunks: Update the chunks_json field of a document by its ID.
+    - delete: Delete a document by its ID.
+    - to_schema: Convert a DocumentRecord to a DocumentRecordSchema.
+    - to_document_out: Convert a DocumentRecord to a DocumentOut schema.
+    """
+
     @staticmethod
     def create(db: Session, document: DocumentRecordSchema) -> DocumentRecord:
+        """
+        Create a new document record in the database.
+
+        Args:
+            db (Session): The database session.
+            document (DocumentRecordSchema): The document data to create.
+
+        Returns:
+            DocumentRecord: The created document record.
+        """
         db_record = DocumentRecord(
             source=document.source,
             source_type=document.source_type,
@@ -123,22 +181,64 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def get_by_id(db: Session, doc_id: int) -> Optional[DocumentRecord]:
+        """
+        Retrieve a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to retrieve.
+        """
         return db.query(DocumentRecord).filter(DocumentRecord.id == doc_id).first()
 
     @staticmethod
     def get_by_source(db: Session, source: str) -> Optional[DocumentRecord]:
+        """
+        Retrieve a document by its source.
+
+        Args:
+            db (Session): The database session.
+            source (str): The source of the document to retrieve.
+
+        Returns:
+            Optional[DocumentRecord]: The document record if found, else None.
+        """
         return db.query(DocumentRecord).filter(DocumentRecord.source == source).first()
 
     @staticmethod
-    def get_by_source_type(db: Session, source_type: str) -> List[DocumentRecord]:
-        return (
+    def get_by_source_type(db: Session, source_type: str) -> List[DocumentRecordSchema]:
+        """
+        Retrieve documents by their source type.
+
+        Args:
+            db (Session): The database session.
+            source_type (str): The source type to filter by.
+
+        Returns:
+            List[DocumentRecordSchema]: A list of document record schemas.
+        """
+        results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.source_type == source_type)
             .all()
         )
+        try:
+            records = [DocumentRecord(**r.__dict__) for r in results]
+            return [DocumentRecordRepo.to_schema(record) for record in records]
+        except Exception:
+            return []
 
     @staticmethod
     def get_by_source_ref(db: Session, source_ref: int) -> Optional[DocumentRecord]:
+        """
+        Retrieve a document by its source reference ID.
+
+        Args:
+            db (Session): The database session.
+            source_ref (int): The source reference ID to filter by.
+
+        Returns:
+            Optional[DocumentRecord]: The document record if found, else None.
+        """
         return (
             db.query(DocumentRecord)
             .filter(DocumentRecord.source_ref == source_ref)
@@ -146,30 +246,82 @@ class DocumentRecordCRUD:
         )
 
     @staticmethod
-    def search_by_text(db: Session, search_text: str) -> List[DocumentRecord]:
-        return (
+    def search_by_text(db: Session, search_text: str) -> List[DocumentRecordSchema]:
+        """
+        Search documents by text content.
+
+        Args:
+            db (Session): The database session.
+            search_text (str): The text to search for within document content.
+
+        Returns:
+            List[DocumentRecordSchema]: A list of document record schemas matching the search.
+        """
+        results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.text.contains(search_text))
             .all()
         )
+        try:
+            records = [DocumentRecord(**r.__dict__) for r in results]
+            return [DocumentRecordRepo.to_schema(record) for record in records]
+        except Exception:
+            return []
 
     @staticmethod
-    def search_by_markdown(db: Session, search_text: str) -> List[DocumentRecord]:
-        return (
+    def search_by_markdown(db: Session, search_text: str) -> List[DocumentRecordSchema]:
+        """
+        Search documents by markdown content.
+
+        Args:
+            db (Session): The database session.
+            search_text (str): The text to search for within document markdown content.
+
+        Returns:
+            List[DocumentRecordSchema]: A list of document record schemas matching the search.
+        """
+        results = (
             db.query(DocumentRecord)
             .filter(DocumentRecord.markdown.contains(search_text))
             .all()
         )
+        try:
+            records = [DocumentRecord(**r.__dict__) for r in results]
+            return [DocumentRecordRepo.to_schema(record) for record in records]
+        except Exception:
+            return []
 
     @staticmethod
     def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[DocumentRecord]:
+        """
+        Fetch all documents with pagination.
+
+        Args:
+            db (Session): The database session.
+            skip (int): Number of records to skip for pagination.
+            limit (int): Maximum number of records to return.
+
+        Returns:
+            List[DocumentRecord]: A list of document records.
+        """
         return db.query(DocumentRecord).offset(skip).limit(limit).all()
 
     @staticmethod
     def update(
         db: Session, doc_id: int, document: DocumentRecordSchema
     ) -> Optional[DocumentRecord]:
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        """
+        Update a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to update.
+            document (DocumentRecordSchema): The document data to update.
+
+        Returns:
+            Optional[DocumentRecord]: The updated document record, or None if not found.
+        """
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             update_data = document.model_dump(exclude_unset=True, exclude={"id"})
             if "dl_doc" in update_data and update_data["dl_doc"]:
@@ -191,7 +343,19 @@ class DocumentRecordCRUD:
         markdown: Optional[str] = None,
         html: Optional[str] = None,
     ) -> Optional[DocumentRecord]:
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        """
+        Update the text content of the document by itsID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to update.
+            text (str): The new text content.
+            markdown (Optional[str]): The new markdown content, if any.
+            html (Optional[str]): The new HTML content, if any.
+        Returns:
+            Optional[DocumentRecord]: The updated document record, or None if not found.
+        """
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             db_record.text = text
             if markdown is not None:
@@ -205,9 +369,20 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def update_chunks(
-        db: Session, doc_id: int, chunks_json: List[BaseChunk]
+        db: Session, doc_id: int, chunks_json: str
     ) -> Optional[DocumentRecord]:
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        """
+        Update the chunks_json field of a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to update.
+            chunks_json (str): The new chunks JSON data.
+
+        Returns:
+            Optional[DocumentRecord]: The updated document record, or None if not found.
+        """
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             db_record.chunks_json = chunks_json
             db_record.updated_at = datetime.now(timezone.utc)
@@ -217,7 +392,17 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def delete(db: Session, doc_id: int) -> bool:
-        db_record = DocumentRecordCRUD.get_by_id(db, doc_id)
+        """
+        Delete a document by its ID.
+
+        Args:
+            db (Session): The database session.
+            doc_id (int): The ID of the document to delete.
+
+        Returns:
+            bool: True if the record was deleted, False if not found.
+        """
+        db_record = DocumentRecordRepo.get_by_id(db, doc_id)
         if db_record:
             db.delete(db_record)
             db.commit()
@@ -226,6 +411,15 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def to_schema(record: DocumentRecord) -> DocumentRecordSchema:
+        """
+        Convert a DocumentRecord to a DocumentRecordSchema.
+
+        Args:
+            record (DocumentRecord): The database record to convert.
+
+        Returns:
+            DocumentRecordSchema: A pydantic schema representation of the record.
+        """
         return DocumentRecordSchema(
             id=record.id,
             source=record.source,
@@ -243,6 +437,15 @@ class DocumentRecordCRUD:
 
     @staticmethod
     def to_document_out(record: DocumentRecord) -> DocumentOut:
+        """
+        Convert a DocumentRecord to a DocumentOut schema.
+
+        Args:
+            record (DocumentRecord): The database record to convert.
+
+        Returns:
+            DocumentOut: A pydantic schema representation of the record.
+        """
         return DocumentOut(
             id=record.id,
             source=record.source,
