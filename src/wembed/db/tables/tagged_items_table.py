@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,11 +28,22 @@ class TaggedItemsTable(Base):
 
 
 class TaggedItemSchema(BaseModel):
-    id: Optional[int] = None
-    tag_id: int
-    tagged_item_id: str
-    tagged_item_source: str
-    created_at: Optional[datetime] = None
+    id: Optional[int] = Field(
+        None,
+        description="Unique identifier for the tagged item AUTO INCREMENT in the database",
+    )
+    tag_id: int = Field(..., description="PK of the associated tag from the tags table")
+    tagged_item_id: str = Field(
+        ..., max_length=50, description="PK of the item being tagged"
+    )
+    tagged_item_source: str = Field(
+        ...,
+        max_length=50,
+        description="Column Name of the source table of the tagged item",
+    )
+    created_at: Optional[datetime] = Field(
+        None, description="Timestamp when the tagged item was created"
+    )
 
     class Config:
         """Pydantic configuration to allow population from ORM objects."""

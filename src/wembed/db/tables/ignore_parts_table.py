@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ...services.db_service import DbService
+from ...services import DbService
 from ..base import Base
 
 
@@ -12,7 +12,7 @@ class IgnorePartsTable(Base):
 
 
 class IgnorePartsSchema(BaseModel):
-    part: str
+    part: str = Field(..., max_length=100)
 
     class Config:
         """Pydantic configuration to allow population from ORM objects."""

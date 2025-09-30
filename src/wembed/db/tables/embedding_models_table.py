@@ -11,13 +11,13 @@ It includes details such as:
 """
 
 from datetime import datetime, timezone
-from typing import Optional, Required
+from typing import Optional
 
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .. import DbService
+from ...services import DbService
 from ..base import Base
 
 
@@ -73,16 +73,14 @@ class EmbeddingModelSchema(BaseModel):
         updated_at (datetime): Timestamp of the last update to the record.
     """
 
-    model_name: Required[str] = Field(
-        ..., description="The name of the embedding model."
-    )
-    hf_model_id: Required[str] = Field(
+    model_name: str = Field(..., description="The name of the embedding model.")
+    hf_model_id: str = Field(
         ..., description="The Hugging Face model ID, if applicable."
     )
-    embedding_length: Required[int] = Field(
+    embedding_length: int = Field(
         ..., description="The dimensionality of the embeddings produced by the model."
     )
-    context_length: Required[int] = Field(
+    context_length: int = Field(
         ...,
         description="The maximum context length (in tokens) that the model can handle.",
     )
@@ -140,7 +138,9 @@ class EmbeddingModelRepo:
             return None
 
     def set_default(
-        self, model_name: Optional[str] = None, model_id: Optional[int] = None
+        self,
+        model_name: Optional[str] = None,
+        model_id: Optional[int] = None,
     ) -> bool:
         """Sets an embedding model as the default."""
         with self._db_svc.get_session() as session:
