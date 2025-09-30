@@ -75,6 +75,16 @@ class MdXrefController:
                 return True
             return False
 
+    def initialize_defaults(self, defaults: dict[str, str]) -> None:
+        """Initializes the database with a set of default key-value mappings."""
+        with self._db_svc.get_session()() as session:
+            for k, v in defaults.items():
+                mapping = session.get(MdXrefTable, k)
+                if not mapping:
+                    mapping = MdXrefTable(k=k, v=v)
+                    session.add(mapping)
+            session.commit()
+
     @staticmethod
     def from_schema(mapping: MdXrefTable) -> MdXrefSchema:
         """Converts a MdXrefTable instance to its schema representation."""
