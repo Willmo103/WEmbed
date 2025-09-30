@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, String
 
+from ...config.md_xref import DEFAULT_MD_XREF
 from ...services import DbService
 from ..base import Base
 
@@ -37,6 +38,7 @@ class MdXrefController:
     - set_mapping: Sets or updates the mapping value for a given key.
     - delete_mapping: Deletes the mapping for a given key.
     """
+    _db_svc: DbService
 
     def __init__(self, db_svc: DbService):
         self._db_svc = db_svc
@@ -81,7 +83,7 @@ class MdXrefController:
                 return True
             return False
 
-    def initialize_defaults(self, defaults: dict[str, str]) -> None:
+    def initialize_defaults(self, defaults: dict[str, str] = DEFAULT_MD_XREF) -> None:
         """Initializes the database with a set of default key-value mappings."""
         with self._db_svc.get_session()() as session:
             for k, v in defaults.items():

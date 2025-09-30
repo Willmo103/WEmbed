@@ -107,7 +107,7 @@ class EmbeddingModelSchema(BaseModel):
         self.updated_at = datetime.now(timezone.utc)
 
 
-class EmbeddingModelRepo:
+class EmbeddingModelController:
     """
     Repository class for managing EmbeddingModelTable records in the database.
     Provides methods for CRUD operations and querying embedding models.
@@ -123,6 +123,7 @@ class EmbeddingModelRepo:
         delete(session, model_name): Deletes an embedding model by its name.
         to_schema(model): Converts a database model instance to a Pydantic schema instance.
     """
+    _db_svc: DbService
 
     def __init__(self, db_svc: DbService) -> None:
         self._db_svc = db_svc

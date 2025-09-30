@@ -48,13 +48,22 @@ class FileLineRecord(Base):
 class FileLineSchema(BaseModel):
     id: Optional[int] = Field(None, description="Unique identifier for the file line")
     file_id: str = Field(..., max_length=50, description="PK id of the associated file")
-    file_repo_name: str = Field(..., max_length=100, description="Name of the repository the file belongs to")
-    file_repo_type: str = Field(..., max_length=50, description="Type of the repository (e.g., git, svn)")
+    file_repo_name: str = Field(
+        ..., max_length=100, description="Name of the repository the file belongs to"
+    )
+    file_repo_type: str = Field(
+        ..., max_length=50, description="Type of the repository (e.g., git, svn)"
+    )
     file_version: str = Field(..., max_length=50, description="Version of the file")
     line_number: int = Field(..., description="Line number in the file")
     line_text: str = Field(..., description="Text content of the line")
-    embedding: Optional[List[float]] = Field(None, description="Embedding vector for the line")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the record was created")
+    embedding: Optional[List[float]] = Field(
+        None, description="Embedding vector for the line"
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Timestamp of when the record was created",
+    )
 
     @computed_field
     @property

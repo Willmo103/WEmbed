@@ -7,16 +7,16 @@ along with Repository classes for CRUD operations.
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from wembed.services.db_service import DbService
 
 from .base import Base
+from .file_line import FileLineRecord, FileLineSchema
 from .tables.tagged_items_table import TaggedItemSchema, TaggedItemsTable
 from .tag_record import TagRecord
-from .file_line import FileLineRecord, FileLineSchema
 
 
 class FileRecord(Base):
@@ -95,25 +95,44 @@ class FileRecord(Base):
 class FileRecordSchema(BaseModel):
     id: str = Field(..., description="Unique identifier for the file")
     version: int = Field(1, description="Version number of the file record")
-    source_type: str = Field(..., max_length=50, description="Type of the source (e.g., 'repo', 'vault', 'documentation')")
+    source_type: str = Field(
+        ...,
+        max_length=50,
+        description="Type of the source (e.g., 'repo', 'vault', 'documentation')",
+    )
     source_root: str = Field(..., description="Root path of the source")
-    source_name: str = Field(..., description="Name of the source (e.g., repository name)")
+    source_name: str = Field(
+        ..., description="Name of the source (e.g., repository name)"
+    )
     host: Optional[str] = Field(None, description="Hostname where the file is located")
     user: Optional[str] = Field(None, description="User associated with the file")
     name: Optional[str] = Field(None, description="Name of the file")
-    stem: Optional[str] = Field(None, description="Stem of the file name (name without suffix)")
+    stem: Optional[str] = Field(
+        None, description="Stem of the file name (name without suffix)"
+    )
     path: Optional[str] = Field(None, description="Full path to the file")
-    relative_path: Optional[str] = Field(None, description="Path relative to the source root")
+    relative_path: Optional[str] = Field(
+        None, description="Path relative to the source root"
+    )
     suffix: Optional[str] = Field(None, description="File extension/suffix")
-    sha256: Optional[str] = Field(None, description="SHA-256 hash of the file content (unique)")
+    sha256: Optional[str] = Field(
+        None, description="SHA-256 hash of the file content (unique)"
+    )
     md5: Optional[str] = Field(None, description="MD5 hash of the file content")
     mode: Optional[int] = Field(None, description="File mode/permissions")
     size: Optional[int] = Field(None, description="Size of the file in bytes")
     content: Optional[bytes] = Field(None, description="Binary content of the file")
     content_text: Optional[str] = Field(None, description="Text content of the file")
-    ctime_iso: Optional[datetime] = Field(None, description="Creation time of the file (ISO format)")
-    mtime_iso: Optional[datetime] = Field(None, description="Last modified time of the file (ISO format)")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the record was created")
+    ctime_iso: Optional[datetime] = Field(
+        None, description="Creation time of the file (ISO format)"
+    )
+    mtime_iso: Optional[datetime] = Field(
+        None, description="Last modified time of the file (ISO format)"
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Timestamp of when the record was created",
+    )
     line_count: Optional[int] = Field(None, description="Number of lines in the file")
     uri: Optional[str] = Field(None, description="URI of the file on the host system")
     mimetype: Optional[str] = Field(None, description="MIME type of the file")
@@ -124,26 +143,6 @@ class FileRecordSchema(BaseModel):
 
     def bump_version(self) -> None:
         self.version += 1
-
-    class Config:
-        """Pydantic configuration to allow ORM mode."""
-
-        from_attributes = True
-
-
-class FileLineSchema(BaseModel):
-    file_id: str
-    file_repo_name: str
-    file_repo_type: str
-    file_version: str
-    line_number: int
-    line_text: str
-    embedding: Optional[list[float]] = None
-
-    @computed_field
-    def id(self) -> str:
-        """Computes a unique ID for the file line based on file_id and line_number."""
-        return f"{self.file_id}:{self.line_number}"
 
     class Config:
         """Pydantic configuration to allow ORM mode."""
@@ -174,10 +173,10 @@ class FileRecordRepo:
     - to_schema: Convert a FileRecord to its corresponding FileRecordSchema.
     """
 
-    _db_svc: DbService
+    _db_srvc: DbService
 
     def __init__(self, db_svc: DbService):
-        self._db_svc = db_svc
+        self._db_srvc = db_svc
 
     def create(self, file_record: FileRecordSchema) -> FileRecord:
         """
@@ -216,7 +215,7 @@ class FileRecordRepo:
             mimetype=file_record.mimetype or "",
             created_at=file_record.created_at,
         )
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             db.add(db_record)
             db.commit()
             db.refresh(db_record)
@@ -232,7 +231,7 @@ class FileRecordRepo:
         Returns:
             Optional[FileRecord]: The FileRecord instance if found, else None.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             return db.query(FileRecord).filter(FileRecord.id == file_id).first()
 
     def get_by_sha256(self, sha256: str) -> Optional[FileRecord]:
@@ -245,7 +244,7 @@ class FileRecordRepo:
         Returns:
             Optional[FileRecord]: The FileRecord instance if found, else None.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             return db.query(FileRecord).filter(FileRecord.sha256 == sha256).first()
 
     def get_by_source_type(self, source_type: str) -> List[FileRecordSchema]:
@@ -258,7 +257,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the source type.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = (
                 db.query(FileRecord).filter(FileRecord.source_type == source_type).all()
             )
@@ -278,7 +277,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the source name.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = (
                 db.query(FileRecord).filter(FileRecord.source_name == source_name).all()
             )
@@ -299,7 +298,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the host.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             records = db.query(FileRecord).filter(FileRecord.host == host).all()
             try:
                 return [FileRecordSchema(**r.__dict__) for r in records]
@@ -317,7 +316,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the suffix.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = db.query(FileRecord).filter(FileRecord.suffix == suffix).all()
             try:
                 records = [FileRecord(**r.__dict__) for r in results]
@@ -336,7 +335,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the MIME type.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = db.query(FileRecord).filter(FileRecord.mimetype == mimetype).all()
             try:
                 records = [FileRecord(**r.__dict__) for r in results]
@@ -355,7 +354,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the name pattern.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = (
                 db.query(FileRecord)
                 .filter(FileRecord.name.contains(name_pattern))
@@ -378,7 +377,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects matching the content text.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = (
                 db.query(FileRecord)
                 .filter(FileRecord.content_text.contains(search_text))
@@ -402,7 +401,7 @@ class FileRecordRepo:
         Returns:
             List[FileRecordSchema]: List of FileRecordSchema objects.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             results = db.query(FileRecord).offset(skip).limit(limit).all()
             try:
                 records = [FileRecord(**r.__dict__) for r in results]
@@ -424,7 +423,7 @@ class FileRecordRepo:
         Returns:
             Optional[FileRecord]: The updated file record or None if not found.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             db_record = FileRecordRepo.get_by_id(db, file_id)
             if db_record:
                 for key, value in file_record.model_dump(
@@ -446,7 +445,7 @@ class FileRecordRepo:
         Returns:
             Optional[FileRecord]: The updated file record or None if not found.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             db_record = FileRecordRepo.get_by_id(db, file_id)
             if db_record:
                 db_record.version += 1
@@ -465,7 +464,7 @@ class FileRecordRepo:
         Returns:
             Optional[FileRecord]: The updated file record or None if not found.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             db_record = FileRecordRepo.get_by_id(db, file_id)
             if db_record:
                 db_record.markdown = markdown
@@ -481,7 +480,7 @@ class FileRecordRepo:
         Returns:
             bool: True if the record was deleted, False if not found.
         """
-        with self._db_svc.get_session()() as db:
+        with self._db_srvc.get_session()() as db:
             db_record = FileRecordRepo.get_by_id(db, file_id)
             if db_record:
                 db.delete(db_record)

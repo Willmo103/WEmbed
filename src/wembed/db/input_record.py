@@ -104,6 +104,8 @@ class InputRecordRepo:
     - to_schema: Convert an InputRecord to InputRecordSchema.
     """
 
+    _db_srvc: Session
+
     @staticmethod
     def create(db: Session, input_record: InputRecordSchema) -> InputRecord:
         """
