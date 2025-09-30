@@ -16,6 +16,7 @@ from wembed.services.db_service import DbService
 from .base import Base
 from .tables.tagged_items_table import TaggedItemSchema, TaggedItemsTable
 from .tag_record import TagRecord
+from .file_line import FileLineRecord, FileLineSchema
 
 
 class FileRecord(Base):
@@ -84,39 +85,39 @@ class FileRecord(Base):
     )
     tags: Mapped[List["TagRecord"]] = relationship(
         secondary=TaggedItemsTable.__table__,
-        primaryjoin=id == Column(TaggedItemsTable.taggable_id),
+        primaryjoin=id == Column(TaggedItemsTable.tagged_item_id),
         secondaryjoin=Column(TaggedItemsTable.tag_id) == TagRecord.id,
         viewonly=True,  # Prevents accidental modifications through this relationship
-        nulllable=True,
+        nullable=True,
     )
 
 
 class FileRecordSchema(BaseModel):
-    id: str
-    version: int = 1
-    source_type: str
-    source_root: str
-    source_name: str
-    host: Optional[str] = None
-    user: Optional[str] = None
-    name: Optional[str] = None
-    stem: Optional[str] = None
-    path: Optional[str] = None
-    relative_path: Optional[str] = None
-    suffix: Optional[str] = None
-    sha256: Optional[str] = None
-    md5: Optional[str] = None
-    mode: Optional[int] = None
-    size: Optional[int] = None
-    content: Optional[bytes] = None
-    content_text: Optional[str] = None
-    ctime_iso: Optional[datetime] = None
-    mtime_iso: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    line_count: Optional[int] = None
-    uri: Optional[str] = None
-    mimetype: Optional[str] = None
-    markdown: Optional[str] = None
+    id: str = Field(..., description="Unique identifier for the file")
+    version: int = Field(1, description="Version number of the file record")
+    source_type: str = Field(..., max_length=50, description="Type of the source (e.g., 'repo', 'vault', 'documentation')")
+    source_root: str = Field(..., description="Root path of the source")
+    source_name: str = Field(..., description="Name of the source (e.g., repository name)")
+    host: Optional[str] = Field(None, description="Hostname where the file is located")
+    user: Optional[str] = Field(None, description="User associated with the file")
+    name: Optional[str] = Field(None, description="Name of the file")
+    stem: Optional[str] = Field(None, description="Stem of the file name (name without suffix)")
+    path: Optional[str] = Field(None, description="Full path to the file")
+    relative_path: Optional[str] = Field(None, description="Path relative to the source root")
+    suffix: Optional[str] = Field(None, description="File extension/suffix")
+    sha256: Optional[str] = Field(None, description="SHA-256 hash of the file content (unique)")
+    md5: Optional[str] = Field(None, description="MD5 hash of the file content")
+    mode: Optional[int] = Field(None, description="File mode/permissions")
+    size: Optional[int] = Field(None, description="Size of the file in bytes")
+    content: Optional[bytes] = Field(None, description="Binary content of the file")
+    content_text: Optional[str] = Field(None, description="Text content of the file")
+    ctime_iso: Optional[datetime] = Field(None, description="Creation time of the file (ISO format)")
+    mtime_iso: Optional[datetime] = Field(None, description="Last modified time of the file (ISO format)")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of when the record was created")
+    line_count: Optional[int] = Field(None, description="Number of lines in the file")
+    uri: Optional[str] = Field(None, description="URI of the file on the host system")
+    mimetype: Optional[str] = Field(None, description="MIME type of the file")
+    markdown: Optional[str] = Field(None, description="Markdown content of the file")
     tags: Optional[List[TaggedItemSchema]] = Field(
         [], description="List of associated tags"
     )
