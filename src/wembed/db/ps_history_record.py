@@ -2,24 +2,32 @@
 This module defines the PSHistoryRecord, PSHistoryRecordSchema, and PSHistoryRecordRepo
 classes for managing history records in a database using SQLAlchemy ORM.
 """
+
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import List, Optional
 from uuid import uuid4
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base, Session
-from sqlalchemy import String, Text
+
 from pydantic import BaseModel
+from sqlalchemy import String, Text
+from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column
 
 from .base import Base
+
 
 class PSHistoryRecord(Base):
     """
     Represents a history record in the database.
     """
+
     __tablename__ = "ps_history"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid4())
+    )
     command: Mapped[str] = mapped_column(String(255), nullable=False)
-    start_time: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now(tz=timezone.utc))
+    start_time: Mapped[datetime] = mapped_column(
+        nullable=False, default=datetime.now(tz=timezone.utc)
+    )
     end_time: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     duration_seconds: Mapped[Optional[float]] = mapped_column(nullable=True)
     host: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -37,6 +45,7 @@ class PSHistoryRecordSchema(BaseModel):
 
     class Config:
         """Pydantic configuration to allow population from ORM objects."""
+
         from_attributes = True
 
 
@@ -53,7 +62,6 @@ class PSHistoryRecordRepo:
         - get_all: Retrieve all history records.
         - to_schema: Convert a PSHistoryRecord to its schema representation.
     """
-
 
     @staticmethod
     def create(db: Session, record: PSHistoryRecordSchema) -> PSHistoryRecord:
@@ -73,7 +81,7 @@ class PSHistoryRecordRepo:
             end_time=record.end_time,
             duration_seconds=record.duration_seconds,
             host=record.host,
-            user=record.user
+            user=record.user,
         )
         db.add(db_record)
         db.commit()
@@ -81,7 +89,9 @@ class PSHistoryRecordRepo:
         return db_record
 
     @staticmethod
-    def batch_create(db: Session, records: List[PSHistoryRecordSchema]) -> List[PSHistoryRecord]:
+    def batch_create(
+        db: Session, records: List[PSHistoryRecordSchema]
+    ) -> List[PSHistoryRecord]:
         """
         Create multiple history records in a batch operation.
 
@@ -92,21 +102,26 @@ class PSHistoryRecordRepo:
         Returns:
             List[PSHistoryRecord]: List of created history records.
         """
-        db_records = [PSHistoryRecord(
-            command=record.command,
-            start_time=record.start_time,
-            end_time=record.end_time,
-            duration_seconds=record.duration_seconds,
-            host=record.host,
-            user=record.user
-        ) for record in records]
+        db_records = [
+            PSHistoryRecord(
+                command=record.command,
+                start_time=record.start_time,
+                end_time=record.end_time,
+                duration_seconds=record.duration_seconds,
+                host=record.host,
+                user=record.user,
+            )
+            for record in records
+        ]
         db.add_all(db_records)
         db.commit()
         db.refresh(db_records)
         return db_records
 
     @staticmethod
-    def get_by_host_or_user(db: Session, host: Optional[str] = None, user: Optional[str] = None) -> List[PSHistoryRecord]:
+    def get_by_host_or_user(
+        db: Session, host: Optional[str] = None, user: Optional[str] = None
+    ) -> List[PSHistoryRecord]:
         """
         Retrieve history records filtered by host or user.
 
@@ -125,7 +140,9 @@ class PSHistoryRecordRepo:
         return query.all()
 
     @staticmethod
-    def get_by_time_range(db: Session, start: datetime, end: datetime) -> List[PSHistoryRecord]:
+    def get_by_time_range(
+        db: Session, start: datetime, end: datetime
+    ) -> List[PSHistoryRecord]:
         """
         Retrieve history records within a specific time range.
 
@@ -137,10 +154,13 @@ class PSHistoryRecordRepo:
         Returns:
             List[PSHistoryRecord]: List of matching history records.
         """
-        return db.query(PSHistoryRecord).filter(
-            PSHistoryRecord.start_time >= start,
-            PSHistoryRecord.start_time <= end
-        ).all()
+        return (
+            db.query(PSHistoryRecord)
+            .filter(
+                PSHistoryRecord.start_time >= start, PSHistoryRecord.start_time <= end
+            )
+            .all()
+        )
 
     @staticmethod
     def get_all(db: Session) -> List[PSHistoryRecord]:
@@ -173,5 +193,5 @@ class PSHistoryRecordRepo:
             end_time=record.end_time,
             duration_seconds=record.duration_seconds,
             host=record.host,
-            user=record.user
+            user=record.user,
         )
