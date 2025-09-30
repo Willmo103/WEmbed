@@ -3,7 +3,8 @@ from typing import Tuple
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import sessionmaker
 
-from wembed import AppConfig, Base
+from ..config.model import AppConfig
+from ..db.base import Base
 
 
 class DbService:

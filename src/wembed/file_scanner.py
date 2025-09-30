@@ -7,9 +7,10 @@ from uuid import uuid4
 
 import typer
 
+from wembed.constants.ignore_ext import IGNORE_EXTENSIONS
+from wembed.constants.ignore_parts import IGNORE_PARTS
+
 from . import DbService
-from .config.ignore_ext import IGNORE_EXTENSIONS
-from .config.ignore_parts import IGNORE_PARTS
 from .db import (
     RepoRecordRepo,
     RepoRecordSchema,
@@ -32,6 +33,32 @@ def iter_files_from_pl_path(base: Path) -> Iterable[Path]:
     for item in base.rglob("*"):
         if item.is_file():
             yield item
+
+
+def iter_git_tracked_files(base: Path) -> Iterable[Path]:
+    """
+    Yields all git-tracked files in a directory and its subdirectories.
+    Args:
+        base (pathlib.Path): A pathlib.Path object representing the base directory to iterate.
+    Yields:
+        Iterable[pathlib.Path]: An iterable of pathlib.Path objects for each git-tracked file found.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(base), "ls-files"],
+            capture_output=True,
+            text=True,
+            check=True,
+            encoding="utf-8",
+        )
+        file_paths = out.stdout.splitlines()
+        for rel_path in file_paths:
+            p = base / rel_path
+            if p.is_file():
+                yield p
+    except Exception:
+        # Fallback for non-git dirs or errors
+        yield from iter_files_from_pl_path(base)
 
 
 def path_has_ignored_part(item: Path, parts: Set[str] = IGNORE_PARTS) -> bool:

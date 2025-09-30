@@ -5,9 +5,13 @@ import json
 import typer
 from typing_extensions import Annotated
 
+from wembed import PROD_CONFIG_DIR
+
 # It's crucial to import the config class AFTER typer,
 # so CLI --help generation doesn't fail if a config dir is missing.
-from wembed.config import CONFIG_DIR, PROD_CONFIG_DIR, AppConfig
+from wembed.config import CONFIG_DIR
+from wembed.config.model import AppConfig
+from wembed.constants import HEADERS, IGNORE_EXTENSIONS, IGNORE_PARTS, MD_XREF
 
 app = typer.Typer(no_args_is_help=True, help="Wembed Configuration and Management CLI")
 
@@ -63,10 +67,10 @@ def init(
         "appconfig.json": default_config.model_dump(
             exclude={"headers", "ignore_extensions", "ignore_parts", "md_xref"}
         ),
-        "headers.json": default_config.headers,
-        "ignore_exts.json": default_config.ignore_extensions,
-        "ignore_parts.json": default_config.ignore_parts,
-        "md_xref.json": default_config.md_xref,
+        "headers.json": HEADERS,
+        "ignore_exts.json": IGNORE_EXTENSIONS,
+        "ignore_parts.json": IGNORE_PARTS,
+        "md_xref.json": MD_XREF,
     }
 
     for filename, content in config_files.items():
