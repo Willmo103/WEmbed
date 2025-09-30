@@ -24,6 +24,7 @@ class IgnoreExtController:
     - get_all_extensions: Retrieves all ignored file extensions.
     - delete_extension: Deletes a specific file extension from ignore list.
     """
+    _db_svc: DbService
 
     def __init__(self, db_svc: DbService):
         self._db_svc = db_svc
