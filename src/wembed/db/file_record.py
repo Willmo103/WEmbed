@@ -11,8 +11,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from wembed.services.db_service import DbService
-
 from .base import Base
 from .file_line import FileLineRecord, FileLineSchema
 from .tables.tagged_items_table import TaggedItemSchema, TaggedItemsTable
@@ -85,10 +83,9 @@ class FileRecord(Base):
     )
     tags: Mapped[List["TagRecord"]] = relationship(
         secondary=TaggedItemsTable.__table__,
-        primaryjoin=id == Column(TaggedItemsTable.tagged_item_id),
-        secondaryjoin=Column(TaggedItemsTable.tag_id) == TagRecord.id,
-        viewonly=True,  # Prevents accidental modifications through this relationship
-        nullable=True,
+        primaryjoin=id == TaggedItemsTable.tagged_item_id,
+        secondaryjoin=TagRecord.id == TaggedItemsTable.tag_id,
+        back_populates="files",
     )
 
 
@@ -173,9 +170,9 @@ class FileRecordRepo:
     - to_schema: Convert a FileRecord to its corresponding FileRecordSchema.
     """
 
-    _db_srvc: DbService
+    _db_srvc: "DbService"
 
-    def __init__(self, db_svc: DbService):
+    def __init__(self, db_svc: "DbService"):
         self._db_srvc = db_svc
 
     def create(self, file_record: FileRecordSchema) -> FileRecord:
@@ -525,4 +522,9 @@ class FileRecordRepo:
             uri=record.uri,
             mimetype=record.mimetype,
             markdown=record.markdown,
+            tags=(
+                [TaggedItemSchema(**t.__dict__) for t in record.tags]
+                if record.tags
+                else []
+            ),
         )

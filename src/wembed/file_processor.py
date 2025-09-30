@@ -12,7 +12,7 @@ import typer
 from wembed.db.file_line import FileLineSchema
 
 from . import DbService
-from .config import md_xref
+from .constants import md_xref
 from .db import (
     DocumentIndexRepo,
     DocumentIndexSchema,
@@ -23,6 +23,38 @@ from .db import (
     RepoRecordRepo,
     VaultRecordRepo,
 )
+
+
+def format_image_content_to_embedded_md_image(
+    image_bytes: bytes, mime_type: str
+) -> str:
+    """Formats image bytes to an embedded markdown image string."""
+    import base64
+
+    encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+    return f"![Embedded Image](data:{mime_type};base64,{encoded_image})"
+
+
+def fromat_image_exif_to_md_table(img_path: Path) -> Optional[str]:
+    """Extracts EXIF metadata from an image and formats it as a markdown table."""
+    from PIL import Image
+    from PIL.ExifTags import TAGS
+
+    try:
+        image = Image.open(img_path)
+        exif_data = image.getexif()
+        if not exif_data:
+            return "No EXIF data found."
+
+        exif_table = "| Tag | Value |\n|-----|-------|\n"
+        for tag_id, value in exif_data.items():
+            tag = TAGS.get(tag_id, tag_id)
+            exif_table += f"| {tag} | {value} |\n"
+
+        return exif_table
+    except Exception:  # as e:
+        # log error
+        return None
 
 
 def create_file_record_from_path(

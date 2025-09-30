@@ -29,6 +29,7 @@ class IgnorePartsController:
     - get_all_parts: Retrieves all ignored parts.
     - delete_part: Deletes a specific part from ignore list.
     """
+
     _db_svc: DbService
 
     def __init__(self, db_svc: DbService):

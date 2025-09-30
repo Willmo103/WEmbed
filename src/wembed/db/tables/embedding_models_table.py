@@ -123,6 +123,7 @@ class EmbeddingModelController:
         delete(session, model_name): Deletes an embedding model by its name.
         to_schema(model): Converts a database model instance to a Pydantic schema instance.
     """
+
     _db_svc: DbService
 
     def __init__(self, db_svc: DbService) -> None:

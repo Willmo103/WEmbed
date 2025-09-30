@@ -2,7 +2,7 @@ from os import environ as env
 
 import pytest
 
-from wembed.config import AppConfig
+from wembed import AppConfig
 
 
 class TestAppConfiguration:
