@@ -1,13 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ...services.db_service import DbService
+from ...services import DbService
 from ..base import Base
 
 
 class IgnoreExtSchema(BaseModel):
-    ext: str
+    ext: str = Field(..., max_length=10)
 
 
 class IgnoreExtTable(Base):

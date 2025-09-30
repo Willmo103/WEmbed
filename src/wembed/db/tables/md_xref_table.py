@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import Column, String
 
 from ...services import DbService
@@ -12,8 +12,14 @@ class MdXrefTable(Base):
 
 
 class MdXrefSchema(BaseModel):
-    k: str
-    v: str
+    k: str = Field(
+        ..., max_length=100, description="The file extension of the file content type."
+    )
+    v: str = Field(
+        ...,
+        max_length=100,
+        description="The markdown codeblock language to use for this file type.",
+    )
 
     class Config:
         """Pydantic configuration to allow population from ORM objects."""
